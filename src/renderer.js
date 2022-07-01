@@ -1,74 +1,110 @@
-/**
- * This file will automatically be loaded by webpack and run in the "renderer" context.
- * To learn more about the differences between the "main" and the "renderer" context in
- * Electron, visit:
- *
- * https://electronjs.org/docs/tutorial/application-architecture#main-and-renderer-processes
- *
- * By default, Node.js integration in this file is disabled. When enabling Node.js integration
- * in a renderer process, please be aware of potential security implications. You can read
- * more about security risks here:
- *
- * https://electronjs.org/docs/tutorial/security
- *
- * To enable Node.js integration in this file, open up `main.js` and enable the `nodeIntegration`
- * flag:
- *
- * ```
- *  // Create the browser window.
- *  mainWindow = new BrowserWindow({
- *    width: 800,
- *    height: 600,
- *    webPreferences: {
- *      nodeIntegration: true
- *    }
- *  });
- * ```
- */
-import './index.css';
+const { ipcRenderer } = require('electron')
 
-console.log('👋 This message is being logged by "renderer.js", included via webpack');
 
-function advancedMode(e) {
-    e.preventDefault();
-    var switcher = document.getElementById("switcher");
-    //var hideOnAdvanced = document.getElementsByClassName("hideOnAdvanced");
-    //var stayOnAdvanced = document.getElementsByClassName("stayOnAdvanced");
-    //var slct0 = document.getElementById("slct0");
-    //var slct1 = document.getElementById("slct1");
-    //var eChanNumb = document.getElementById("eChanNumb");
-    //var eChanNumbPrefix = document.getElementById("eChanNumbPrefix");
-    //var eUserLabel = document.getElementById("eUserLabel");
-    //var iCNPLabel = document.getElementById("iCNPLabel");
-    if (switcher.className == "toggle") {
-      switcher.className = "toggle toggle-on";
-      
-      //iCNPLabel.style.visibility = "hidden";
-      //stayOnAdvanced[0].style.display = "block";
-      //stayOnAdvanced[0].style.visibility = "visible";
-      //stayOnAdvanced[0].setAttribute('size', "75%");
-      //for (var i = 0; i < hideOnAdvanced.length; i++) {
-      //  hideOnAdvanced[i].style.display = "none";
-      //};
-      //slct0.required = false;
-      //slct1.required = false;
-      //eUserLabel.required = false;
-      //eChanNumb.required = false;
-      //eChanNumbPrefix.value = ""
-      //iCNPLabel.style.display = "inline-block";
-      //hideOnAdvanced[0].style.display = "inline-block";
-      //hideOnAdvanced[0].style.visibility = "hidden";
-    } else {
-      switcher.className = "toggle";
-      //stayOnAdvanced[0].setAttribute('size', "3");
-      //for (var i = 0; i < hideOnAdvanced.length; i++) {
-      //  hideOnAdvanced[i].style.display = "inline-block";
-      //};
-      //slct0.required = true;
-      //slct1.required = true;
-      //eUserLabel.required = true;
-      //eChanNumb.required = true;
-      //iCNPLabel.style.visibility = "visible";
-      //hideOnAdvanced[0].style.visibility = "visible";
-    };
+ipcRenderer.on('appVersion', function (event, appVersion) {
+    document.getElementById("appVersion").innerHTML = document.getElementById("appVersion").innerHTML + appVersion;
+    //document.getElementById("filepath").innerHTML = "none";
+    console.log("appVersion:", appVersion);
+    
+  })
+
+  ipcRenderer.on('udpportOK', (event) => {
+    var dot2 = document.getElementById("dot2");
+    dot2.style.color = "green";
+  })
+
+  ipcRenderer.on('oServerOK', (event) => {
+    var dot3 = document.getElementById("dot3");
+    dot3.style.color = "green";
+  })
+
+  ipcRenderer.on('incoming_datas',(event,translateX,translateY,translateZ,rotateX,rotateY,rotateZ)=>{
+    console.log(translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
+    
+    var factor = document.getElementById("factor").value
+   document.getElementById("tr_x").value = Math.pow(translateX*(1), 3)*5*factor
+   document.getElementById("tr_y").value = Math.pow(translateY*(1), 3)*5*factor
+   document.getElementById("tr_z").value = Math.pow(translateZ*(1), 3)*5*factor
+   document.getElementById("rt_x").value = Math.pow(rotateX*(1), 3)*5*factor
+   document.getElementById("rt_y").value = Math.pow(rotateY*(1), 3)*5*factor
+   document.getElementById("rt_z").value =Math.pow(rotateZ*(1), 3)*5*factor
+  })
+
+  ipcRenderer.on("buttons", (event,buttons)=>{
+    if (buttons[0] === true){
+      document.getElementById("index").stepDown()
+    }
+    if (buttons[1] === true){
+      document.getElementById("index").stepUp()
+    }
+  })
+
+function displayForm3(event) {
+  const add3 = document.getElementById('add3');
+  var ip11 = document.getElementById("ip11").value;
+  var ip21 = document.getElementById("ip21").value;
+  var ip31 = document.getElementById("ip31").value;
+  var ip41 = document.getElementById("ip41").value;
+  var port2 = document.getElementById("port2").value;
+  var data1 = ip11 + "." + ip21 + "." + ip31 + "." + ip41;
+  OSCserverIP = data1;
+  OSCserverPort = port2;
+  add3.textContent = "OK!  Address : " + data1 + "   /   Port : " + port2;
+  ipcRenderer.send('sendOSCserverIP', data1);
+  ipcRenderer.send('sendOSCserverPort', Number(port2));
+  event.preventDefault();
+}
+
+function aedMode(event){  
+  document.getElementById("btn1").className = "button"
+  document.getElementById("btn2").className = "button_up"
+  document.getElementById("btn3").className = "button_up"
+  document.getElementById("tr_x").style.visibility = "hidden"
+  document.getElementById("tr_y").style.visibility = "hidden"
+  document.getElementById("tr_z").style.visibility = "hidden"
+  document.getElementById("rt_x").style.visibility = "visible"
+  document.getElementById("rt_y").style.visibility = "visible"
+  document.getElementById("rt_z").style.visibility = "visible"
+  document.getElementById("at_tr_x").style.visibility = "hidden"
+  document.getElementById("at_tr_y").style.visibility = "hidden"
+  document.getElementById("at_tr_z").style.visibility = "hidden"
+  document.getElementById("at_rt_x").style.visibility = "visible"
+  document.getElementById("at_rt_y").style.visibility = "visible"
+  document.getElementById("at_rt_z").style.visibility = "visible"
+}
+
+function xyzMode(event){
+  document.getElementById("btn1").className = "button_up"
+  document.getElementById("btn2").className = "button"
+  document.getElementById("btn3").className = "button_up"
+  document.getElementById("rt_x").style.visibility = "hidden"
+  document.getElementById("rt_y").style.visibility = "hidden"
+  document.getElementById("rt_z").style.visibility = "hidden"
+  document.getElementById("tr_x").style.visibility = "visible"
+  document.getElementById("tr_y").style.visibility = "visible"
+  document.getElementById("tr_z").style.visibility = "visible"
+  document.getElementById("at_rt_x").style.visibility = "hidden"
+  document.getElementById("at_rt_y").style.visibility = "hidden"
+  document.getElementById("at_rt_z").style.visibility = "hidden"
+  document.getElementById("at_tr_x").style.visibility = "visible"
+  document.getElementById("at_tr_y").style.visibility = "visible"
+  document.getElementById("at_tr_z").style.visibility = "visible"
+}
+
+function customMode(event){
+  document.getElementById("btn1").className = "button_up"
+  document.getElementById("btn2").className = "button_up"
+  document.getElementById("btn3").className = "button"
+  document.getElementById("rt_x").style.visibility = "visible"
+  document.getElementById("rt_y").style.visibility = "visible"
+  document.getElementById("rt_z").style.visibility = "visible"
+  document.getElementById("tr_x").style.visibility = "visible"
+  document.getElementById("tr_y").style.visibility = "visible"
+  document.getElementById("tr_z").style.visibility = "visible"
+  document.getElementById("at_rt_x").style.visibility = "visible"
+  document.getElementById("at_rt_y").style.visibility = "visible"
+  document.getElementById("at_rt_z").style.visibility = "visible"
+  document.getElementById("at_tr_x").style.visibility = "visible"
+  document.getElementById("at_tr_y").style.visibility = "visible"
+  document.getElementById("at_tr_z").style.visibility = "visible"
 }
