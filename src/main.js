@@ -108,7 +108,9 @@ sendFrequency = 3
   }
 }
 
-
+ipcMain.on("ok_to_send",(event,prefix,index,attr,value) =>{
+  console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
+})
 
 //win.webContents.send("incoming_datas", translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
 }
