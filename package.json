@@ -1,6 +1,10 @@
 {
   "name": "mouse3d-osc",
-  "version": "1.0.0",
+  "author": {
+    "name": "dewiweb",
+    "email": "dewiweb@gmail.com"
+  },
+  "version": "1.0.1",
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
