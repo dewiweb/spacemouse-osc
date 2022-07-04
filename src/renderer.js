@@ -72,9 +72,9 @@ function displayForm3(event) {
 }
 
 function aedMode(event){  
-  document.getElementById("btn1").className = "button"
-  document.getElementById("btn2").className = "button_up"
-  document.getElementById("btn3").className = "button_up"
+  document.getElementById("btn1").className = "button_up"
+  document.getElementById("btn2").className = "button"
+  document.getElementById("btn3").className = "button"
   document.getElementById("tr_x").style.visibility = "hidden"
   document.getElementById("tr_y").style.visibility = "hidden"
   document.getElementById("tr_z").style.visibility = "hidden"
@@ -99,9 +99,9 @@ function aedMode(event){
 }
 
 function xyzMode(event){
-  document.getElementById("btn1").className = "button_up"
-  document.getElementById("btn2").className = "button"
-  document.getElementById("btn3").className = "button_up"
+  document.getElementById("btn1").className = "button"
+  document.getElementById("btn2").className = "button_up"
+  document.getElementById("btn3").className = "button"
   document.getElementById("rt_x").style.visibility = "hidden"
   document.getElementById("rt_y").style.visibility = "hidden"
   document.getElementById("rt_z").style.visibility = "hidden"
@@ -126,9 +126,9 @@ function xyzMode(event){
 }
 
 function customMode(event){
-  document.getElementById("btn1").className = "button_up"
-  document.getElementById("btn2").className = "button_up"
-  document.getElementById("btn3").className = "button"
+  document.getElementById("btn1").className = "button"
+  document.getElementById("btn2").className = "button"
+  document.getElementById("btn3").className = "button_up"
   document.getElementById("rt_x").style.visibility = "visible"
   document.getElementById("rt_y").style.visibility = "visible"
   document.getElementById("rt_z").style.visibility = "visible"
