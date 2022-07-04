@@ -42,7 +42,7 @@
       "oneClick": false,
       "installerIcon": "./src/assets/icon2.ico",
       "uninstallerIcon": "./src/assets/icon2.ico",
-      "license": "./README.md",
+      "license": "./LICENSE.md",
       "allowToChangeInstallationDirectory": true
     }
   }
