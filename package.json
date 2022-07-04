@@ -29,10 +29,14 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "icon": "./src/assets/icon2.ico"
     },
     "nsis":{
       "oneClick": false,
+      "installerIcon": "./src/assets/icon2.ico",
+      "uninstallerIcon": "./src/assets/icon2.ico",
+      "license": "./README.md",
       "allowToChangeInstallationDirectory": true
     }
   }

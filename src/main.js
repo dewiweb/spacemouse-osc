@@ -43,7 +43,7 @@ function createWindow() {
 
     let win = new BrowserWindow({
     width: 1200,
-    height: 410,
+    height: 430,
     webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,

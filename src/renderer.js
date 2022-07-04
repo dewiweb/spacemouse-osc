@@ -23,7 +23,7 @@ ipcRenderer.on('appVersion', function (event, appVersion) {
     var factor = document.getElementById("factor").value
    document.getElementById("tr_x").value = Math.pow(translateX*(1), 3)*5*factor
    document.getElementById("tr_y").value = Math.pow(translateY*(1), 3)*5*factor
-   document.getElementById("tr_z").value = Math.pow(translateZ*(1), 3)*5*factor
+   document.getElementById("tr_z").value = Math.pow(translateZ*(-1), 3)*5*factor
    document.getElementById("rt_x").value = Math.pow(rotateX*(1), 3)*5*factor
    document.getElementById("rt_y").value = Math.pow(rotateY*(1), 3)*5*factor
    document.getElementById("rt_z").value =Math.pow(rotateZ*(1), 3)*5*factor
