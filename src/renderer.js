@@ -20,6 +20,14 @@ ipcRenderer.on('appVersion', function (event, appVersion) {
 
   ipcRenderer.on('incoming_datas',(event,translateX,translateY,translateZ,rotateX,rotateY,rotateZ)=>{
     console.log(translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
+    var ip11 = document.getElementById("ip11").value;
+  var ip21 = document.getElementById("ip21").value;
+  var ip31 = document.getElementById("ip31").value;
+  var ip41 = document.getElementById("ip41").value;
+  var port2 = document.getElementById("port2").value;
+  var data1 = ip11 + "." + ip21 + "." + ip31 + "." + ip41;
+  OSCserverIP = data1;
+  OSCserverPort = port2;
     
     var factor = document.getElementById("factor").value
    document.getElementById("tr_x").value = Math.pow(translateX*(1), 3)*5*factor
@@ -30,31 +38,17 @@ ipcRenderer.on('appVersion', function (event, appVersion) {
    document.getElementById("rt_z").value =Math.pow(rotateZ*(1), 3)*5*factor
    var prefix = document.getElementById("prefix").value
    var index = document.getElementById("index").value
-   var tr_x = document.getElementById("tr_x").value
-   var tr_y = document.getElementById("tr_y").value
-   var tr_z = document.getElementById("tr_z").value
-   var rt_x = document.getElementById("rt_x").value
-   var rt_y = document.getElementById("rt_y").value
-   var rt_z = document.getElementById("rt_z").value
-   var at_tr_x = document.getElementById("at_tr_x").value
-   var at_tr_y = document.getElementById("at_tr_y").value
-   var at_tr_z = document.getElementById("at_tr_z").value
-   var at_rt_x = document.getElementById("at_rt_x").value
-   var at_rt_y = document.getElementById("at_rt_y").value
-   var at_rt_z = document.getElementById("at_rt_z").value
-   var at_tr_x_box = document.getElementById("at_tr_x")
-   var at_tr_y_box = document.getElementById("at_tr_y")
-   var at_tr_z_box = document.getElementById("at_tr_z")
-   var at_rt_x_box = document.getElementById("at_rt_x")
-   var at_rt_y_box = document.getElementById("at_rt_y")
-   var at_rt_z_box = document.getElementById("at_rt_z")
    var table = document.getElementById("tableOfConnection")
-   for(i = 0; i< table.rows[5].length; i++){
+   //console.log("table",table.rows[5])
+   for(i = 0; i< table.rows[5].cells.length; i++){
+    console.log("table_row_5, cell " + i +":",table.rows[5].cells[i])
     var visibility = table.rows[5].cells[i].firstChild.style.visibility
+    console.log("quoi dans cellule?:", table.rows[5].cells[i].firstChild)
+    console.log("visibility : ",visibility)
     if(visibility !== "hidden"){
       var attr = table.rows[5].cells[i].firstChild.value
       var value = table.rows[6].cells[i].firstChild.value
-      ipcRenderer.send("ok_to_send",prefix,index,attr,value)
+      ipcRenderer.send("ok_to_send",prefix,index,attr,value,OSCserverIP,OSCserverPort)
 
     }
    }

@@ -1,6 +1,6 @@
 const osc = require('osc')
 const oUDPport = 0;
-const oServerIP = "";
+//const oServerIP = "";
 const lib = require('./mainFunctions')
 const electron = require('electron')
 const { ipcMain } = require('electron')
@@ -16,6 +16,8 @@ var translateZ = 0
 var rotateX = 0
 var rotateY = 0
 var rotateZ = 0
+//var oServerIP = "0.0.0.0"
+//var oServerPort = 0
 const appVersion = app.getVersion()
 
 
@@ -28,6 +30,22 @@ ipcMain.on('sendUDPport', (event, oUDPport) => {
   })
   oscCli.open()
   win.webContents.send('udpportOK');
+})
+
+ipcMain.on("ok_to_send",(event,prefix,index,attr,value,OSCserverIP,OSCserverPort) =>{
+  console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
+  oscCli.send({
+    timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
+    packets: [{
+      address: prefix + "/" + index + attr,
+      args: [
+          {
+              type: "f",
+              value: value
+          }
+      ]
+  }
+]},OSCserverIP,OSCserverPort)
 })
 
 function createWindow() {
@@ -101,16 +119,14 @@ sendFrequency = 3
  else{
 
 
-    console.log(datas);
+    //console.log(datas);
     console.log(translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
     win.webContents.send("incoming_datas", translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
     iteration = 0
   }
 }
 
-ipcMain.on("ok_to_send",(event,prefix,index,attr,value) =>{
-  console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
-})
+
 
 //win.webContents.send("incoming_datas", translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
 }
