@@ -49,12 +49,15 @@
       "license": "./LICENSE.md",
       "allowToChangeInstallationDirectory": true
     },
-    "linux": [
-      {
-      "target": "AppImage",
-      "arch": [
-        "x64"
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
-    }]
+    }
   }
 }
