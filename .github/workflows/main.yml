@@ -1,9 +1,6 @@
 name: 
   Build/release
-on: 
-  release:
-    types:
-      - created
+on: push
 
 env:
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
