@@ -1,0 +1,32 @@
+name: 
+  Build/release
+on: 
+  release:
+    types:
+      - created
+
+env:
+  GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - name: Install Node.js, NPM and Yarn
+        uses: actions/setup-node@master
+
+      - name: install dependencies
+        run: yarn add electron-builder --dev
+      - name: yarn install
+        run: yarn install
+      - name: publish
+      
+        run: yarn run publish
