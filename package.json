@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "electron .",
-    "package": "electron-builder build --win --x64"
+    "package": "electron-builder build --win --x64",
+    "publish": "electron-builder  build --publish always"
   },
   "dependencies": {
     "node-hid": "^2.1.1",
@@ -21,6 +22,11 @@
       "buildResources": "resources",
       "output": "release-builds"
     },
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ],
     "win": {
       "target": [
         {
