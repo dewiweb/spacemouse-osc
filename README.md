@@ -10,3 +10,6 @@ based on hid.spacemouse \
 
 # Launch
 `yarn start`
+
+
+![Screenshot](/src/assets/screenshot.png)
