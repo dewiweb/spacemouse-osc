@@ -21,16 +21,7 @@ var rotateZ = 0
 const appVersion = app.getVersion()
 
 
-ipcMain.on('sendUDPport', (event, oUDPport) => {
-  console.log('Port de reception OSC:', oUDPport);
-  oscCli = new osc.UDPPort({
-    localAddress: "0.0.0.0",
-    localPort: Number(oUDPport),
-    metadata: true
-  })
-  oscCli.open()
-  win.webContents.send('udpportOK');
-})
+
 
 ipcMain.on("ok_to_send",(event,prefix,index,attr,value,OSCserverIP,OSCserverPort) =>{
   console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
@@ -51,8 +42,8 @@ ipcMain.on("ok_to_send",(event,prefix,index,attr,value,OSCserverIP,OSCserverPort
 function createWindow() {
 
     let win = new BrowserWindow({
-    width: 1366,
-    height: 768,
+    width: 1200,
+    height: 410,
     webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
@@ -62,7 +53,7 @@ function createWindow() {
     })
     win.setMenu(null);
     win.loadFile('src/index.html')
-    win.webContents.openDevTools()
+    //win.webContents.openDevTools()
 
 
     oscCli = new osc.UDPPort({

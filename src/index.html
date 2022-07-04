@@ -2,64 +2,15 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>spacemouseOSC</title>
+  <title>mouse3D-OSC</title>
   <script script type="text/javascript" src="./renderer.js"></script>
   <link rel="stylesheet" type="text/css" href="./style.css">
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
 </head>
 <body>
-    <!--
-    <div id="Network_Settings"> 
-        <div class="form">
-          <form id="form1">
-            <script>
-              form1.addEventListener('submit', displayForm1);
-            </script>
-            <label style="text-align: center;" for="fname">STEP 1 &#8674; &ensp; Please enter Ember+ Server IP:Port
-            </label>
-            <br>
-            <br>
-            <div style="padding-left: 10%;">
-              <input type="number" id="ip1" name="ip1" min="1" max="255" maxlength="3" size="3" autocomplete="on" required
-                value="192"><b> .</b>
-              <input type="number" id="ip2" name="ip2" min="0" max="255" maxlength="3" size="3" autocomplete="on" required
-                value="168"><b> .</b>
-              <input type="number" id="ip3" name="ip3" min="0" max="255" maxlength="3" size="3" autocomplete="on" required
-                value="100"><b> .</b>
-              <input type="number" id="ip4" name="ip4" min="1" max="255" maxlength="3" size="3" autocomplete="on" required
-                value="36"><b> :</b>
-              <input type="number" id="port" name="port" min="1" max="65535" maxlength="5" size="5" autocomplete="on"
-                required value="9000">
-              <input id="button2" class="button" style="text-align: center;" type="submit" value="Go!">
-            </div>
-            <p id="add1">REQUIRED..................</p>
-            <span id="dot1" class="infoDot" style="position: absolute; bottom:0; right:0;">.</span>
-          </form>
-        </div>
-        <div class="form">
-          <form id="form2">
-            <script>
-              form2.addEventListener('submit', displayForm2);
-            </script>
-            <label style="text-align: center;" for="fname">STEP 2 &#8674; &ensp; Setup Local OSC UDP Port
-            </label>
-            <br>
-            <br>
-            <div style="padding-left: 10%;">
-              <input type="number" id="localPort" name="quantity" min="1" max="65535" maxlength="5" size="5"
-                autocomplete="on" required value="9000">
-              <input class="button" style="text-align: center;" type="submit" value="Go!">
-            </div>
-            <p id="add2">REQUIRED..................</p>
-            <span id="dot2" class="infoDot" style="position: absolute; bottom:0; right:0;">.</span>
-          </form>
-        </div>
-        -->
+   
         <div class="form">
           <form id="form3">
-            <script>
-              form3.addEventListener('submit', displayForm3);
-            </script>
             <label style="text-align: center;" for="fname">Enter Remote OSC Server
               IP:Port</label><br><br>
             <div style="padding-left: 10%;">
@@ -70,13 +21,11 @@
               <input type="number" id="ip31" name="31" min="0" max="255" maxlength="3" size="3" autocomplete="on" required
                 value="100"><b> .</b>
               <input type="number" id="ip41" name="41" min="1" max="255" maxlength="3" size="3" autocomplete="on" required
-                value="113"><b> :</b>
+                value="12"><b> :</b>
               <input type="number" id="port2" name="port2" min="1" max="65535" maxlength="5" size="5" autocomplete="on"
-                required value="12000">
-              <input class="button" style="text-align: center;" type="submit" value="Go!">
+                required value="4003">
+                <br/>
             </div>
-            <p id="add3"></p>
-            <span id="dot3" class="infoDot" style="position: absolute; bottom:0; right:0;">.</span>
           </form>
         </div>
       </div>
@@ -103,13 +52,13 @@
             </tr>
             <tr>
               
-              <td colspan="3" style="background-color: black ; font-weight: bold">OSC prefix</td>
-              <td colspan="3" style="background-color: black ; font-weight: bold"> index </td>
+              <td colspan="3" style="background-color: black ; font-weight: bold" title="ex: /track/ , /source/...">OSC prefix</td>
+              <td colspan="3" style="background-color: black ; font-weight: bold" title="<--buttonLeft  buttonRight-->"> index </td>
             </tr>
             <tr>
               
               <td colspan="3" ><input type="text" id="prefix" name="prefix" value="/track/"></td>
-              <td colspan="3"><input type="number" id="index" name="index" value="1" min="1" step="1"></td>
+              <td colspan="3"><input type="number" id="index" name="index" value="3" min="1" step="1"></td>
             </tr>
             <tr>
               <td><img src="./assets/translate_x.png" alt="" width="50%" height="50%"></td>
@@ -137,15 +86,15 @@
             </tr>
             <tr>
               <td>
-                <button class='button byp' id='byp1'>bypass</button>
+                <button class='button byp' id='byp1'>enable</button>
                   <script>byp1.addEventListener('click', byp_1)</script>
               </td>
               <td>
-                <button class='button byp' id='byp2'>bypass</button>
+                <button class='button byp' id='byp2'>enable</button>
                   <script>byp2.addEventListener('click', byp_2)</script>
               </td>
               <td>
-                <button class='button byp' id='byp3'>bypass</button>
+                <button class='button byp' id='byp3'>enable</button>
                   <script>byp3.addEventListener('click', byp_3)</script>
               </td>
               <td>

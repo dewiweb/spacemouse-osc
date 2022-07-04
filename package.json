@@ -4,14 +4,36 @@
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^19.0.7"
+    "electron": "^19.0.7",
+    "electron-builder": "^23.1.0"
   },
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "package": "electron-builder build --win --x64"
   },
   "dependencies": {
-    "hid.spacemouse": "^0.1.0",
     "node-hid": "^2.1.1",
     "osc": "^2.4.3"
+  },
+  "build": {
+    "appId": "mouse3d-osc",
+    "directories": {
+      "buildResources": "resources",
+      "output": "release-builds"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis":{
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

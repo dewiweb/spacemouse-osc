@@ -8,15 +8,6 @@ ipcRenderer.on('appVersion', function (event, appVersion) {
     
   })
 
-  ipcRenderer.on('udpportOK', (event) => {
-    var dot2 = document.getElementById("dot2");
-    dot2.style.color = "green";
-  })
-
-  ipcRenderer.on('oServerOK', (event) => {
-    var dot3 = document.getElementById("dot3");
-    dot3.style.color = "green";
-  })
 
   ipcRenderer.on('incoming_datas',(event,translateX,translateY,translateZ,rotateX,rotateY,rotateZ)=>{
     console.log(translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
@@ -159,11 +150,15 @@ function customMode(event){
 function byp_1(event){
   if(document.getElementById("byp1").className == "button_up byp"){
     document.getElementById("byp1").className = "button byp"
+    document.getElementById("byp1").innerHTML = "enable"
+
     document.getElementById("tr_x").style.visibility = "hidden"
     document.getElementById("at_tr_x").style.visibility = "hidden"
   }
   else{
     document.getElementById("byp1").className = "button_up byp"
+    document.getElementById("byp1").innerHTML = "bypass"
+
     document.getElementById("tr_x").style.visibility = "visible"
     document.getElementById("at_tr_x").style.visibility = "visible"
   }
@@ -171,11 +166,15 @@ function byp_1(event){
 function byp_2(event){
   if(document.getElementById("byp2").className == "button_up byp"){
     document.getElementById("byp2").className = "button byp"
+    document.getElementById("byp2").innerHTML = "enable"
+
     document.getElementById("tr_y").style.visibility = "hidden"
     document.getElementById("at_tr_y").style.visibility = "hidden"
   }
   else{
     document.getElementById("byp2").className = "button_up byp"
+    document.getElementById("byp2").innerHTML = "bypass"
+
     document.getElementById("tr_y").style.visibility = "visible"
     document.getElementById("at_tr_y").style.visibility = "visible"
   }
@@ -183,11 +182,15 @@ function byp_2(event){
 function byp_3(event){
   if(document.getElementById("byp3").className == "button_up byp"){
     document.getElementById("byp3").className = "button byp"
+    document.getElementById("byp3").innerHTML = "enable"
+
     document.getElementById("tr_z").style.visibility = "hidden"
     document.getElementById("at_tr_z").style.visibility = "hidden"
   }
   else{
     document.getElementById("byp3").className = "button_up byp"
+    document.getElementById("byp3").innerHTML = "bypass"
+
     document.getElementById("tr_z").style.visibility = "visible"
     document.getElementById("at_tr_z").style.visibility = "visible"
   }
@@ -195,11 +198,15 @@ function byp_3(event){
 function byp_4(event){
   if(document.getElementById("byp4").className == "button_up byp"){
     document.getElementById("byp4").className = "button byp"
+    document.getElementById("byp4").innerHTML = "enable"
+
     document.getElementById("rt_x").style.visibility = "hidden"
     document.getElementById("at_rt_x").style.visibility = "hidden"
   }
   else{
     document.getElementById("byp4").className = "button_up byp"
+    document.getElementById("byp4").innerHTML = "bypass"
+
     document.getElementById("rt_x").style.visibility = "visible"
     document.getElementById("at_rt_x").style.visibility = "visible"
   }
@@ -207,11 +214,15 @@ function byp_4(event){
 function byp_5(event){
   if(document.getElementById("byp5").className == "button_up byp"){
     document.getElementById("byp5").className = "button byp"
+    document.getElementById("byp5").innerHTML = "enable"
+
     document.getElementById("rt_y").style.visibility = "hidden"
     document.getElementById("at_rt_y").style.visibility = "hidden"
   }
   else{
     document.getElementById("byp5").className = "button_up byp"
+    document.getElementById("byp5").innerHTML = "bypass"
+
     document.getElementById("rt_y").style.visibility = "visible"
     document.getElementById("at_rt_y").style.visibility = "visible"
   }
@@ -219,11 +230,15 @@ function byp_5(event){
 function byp_6(event){
   if(document.getElementById("byp6").className == "button_up byp"){
     document.getElementById("byp6").className = "button byp"
+    document.getElementById("byp6").innerHTML = "enable"
+
     document.getElementById("rt_z").style.visibility = "hidden"
     document.getElementById("at_rt_z").style.visibility = "hidden"
   }
   else{
     document.getElementById("byp6").className = "button_up byp"
+    document.getElementById("byp6").innerHTML = "bypass"
+
     document.getElementById("rt_z").style.visibility = "visible"
     document.getElementById("at_rt_z").style.visibility = "visible"
   }
