@@ -27,6 +27,7 @@ ipcRenderer.on('appVersion', function (event, appVersion) {
    document.getElementById("rt_x").value = Math.pow(rotateX*(1), 3)*5*factor
    document.getElementById("rt_y").value = Math.pow(rotateY*(1), 3)*5*factor
    document.getElementById("rt_z").value =Math.pow(rotateZ*(1), 3)*5*factor
+   var index_or_not = document.getElementById("index").style.visibility
    var prefix = document.getElementById("prefix").value
    var index = document.getElementById("index").value
    var table = document.getElementById("tableOfConnection")
@@ -39,7 +40,7 @@ ipcRenderer.on('appVersion', function (event, appVersion) {
     if(visibility !== "hidden"){
       var attr = table.rows[5].cells[i].firstChild.value
       var value = table.rows[6].cells[i].firstChild.value
-      ipcRenderer.send("ok_to_send",prefix,index,attr,value,OSCserverIP,OSCserverPort)
+      ipcRenderer.send("ok_to_send",prefix,index,index_or_not, attr,value,OSCserverIP,OSCserverPort)
 
     }
    }
@@ -144,6 +145,20 @@ function customMode(event){
   byp = document.getElementsByClassName("byp")
   for (let i = 0; i < byp.length; i++) {
   byp.item(i).className = "button_up byp"
+  }
+}
+function byp_0(event){
+  if(document.getElementById("byp0").className == "button_up byp"){
+    document.getElementById("byp0").className = "button byp"
+    document.getElementById("byp0").innerHTML = "enable"
+
+    document.getElementById("index").style.visibility = "hidden"
+  }
+  else{
+    document.getElementById("byp0").className = "button_up byp"
+    document.getElementById("byp0").innerHTML = "bypass"
+
+    document.getElementById("index").style.visibility = "visible"
   }
 }
 

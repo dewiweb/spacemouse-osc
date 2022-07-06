@@ -23,8 +23,9 @@ const appVersion = app.getVersion()
 
 
 
-ipcMain.on("ok_to_send",(event,prefix,index,attr,value,OSCserverIP,OSCserverPort) =>{
+ipcMain.on("ok_to_send",(event,prefix,index,index_or_not,attr,value,OSCserverIP,OSCserverPort) =>{
   console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
+  if(index_or_not == "visible"){
   oscCli.send({
     timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
     packets: [{
@@ -37,7 +38,25 @@ ipcMain.on("ok_to_send",(event,prefix,index,attr,value,OSCserverIP,OSCserverPort
       ]
   }
 ]},OSCserverIP,OSCserverPort)
+}
+else{
+  oscCli.send({
+    timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
+    packets: [{
+      address: prefix + attr,
+      args: [
+          {
+              type: "f",
+              value: value
+          }
+      ]
+  }
+]},OSCserverIP,OSCserverPort)
+}
 })
+
+
+
 
 function createWindow() {
 
