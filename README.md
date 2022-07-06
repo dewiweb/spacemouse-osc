@@ -12,4 +12,7 @@ based on hid.spacemouse
 `yarn start`
 
 
+# [Downloads](https://github.com/dewiweb/spacemouse-osc/releases)(.exe and .AppImage) 
+
+
 ![Screenshot](/src/assets/screenshot.png)
