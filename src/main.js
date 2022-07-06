@@ -25,6 +25,7 @@ const appVersion = app.getVersion()
 
 ipcMain.on("ok_to_send",(event,prefix,index,index_or_not,attr,value,OSCserverIP,OSCserverPort) =>{
   console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
+  //console.log(index_or_not)
   if(index_or_not == "visible"){
   oscCli.send({
     timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
@@ -72,7 +73,7 @@ function createWindow() {
     })
     win.setMenu(null);
     win.loadFile('src/index.html')
-    //win.webContents.openDevTools()
+    win.webContents.openDevTools()
 
 
     oscCli = new osc.UDPPort({

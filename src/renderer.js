@@ -28,6 +28,7 @@ ipcRenderer.on('appVersion', function (event, appVersion) {
    document.getElementById("rt_y").value = Math.pow(rotateY*(1), 3)*5*factor
    document.getElementById("rt_z").value =Math.pow(rotateZ*(1), 3)*5*factor
    var index_or_not = document.getElementById("index").style.visibility
+   console.log("visibility of index value : ", index_or_not)
    var prefix = document.getElementById("prefix").value
    var index = document.getElementById("index").value
    var table = document.getElementById("tableOfConnection")
