@@ -12,7 +12,7 @@ based on [https://github.com/microdee/hid.spacemouse](https://github.com/microde
 `yarn start`
 
 
-# [Downloads](https://github.com/dewiweb/spacemouse-osc/releases)(.exe and .AppImage) 
+# or simply download [releases](https://github.com/dewiweb/spacemouse-osc/releases)(.exe and .AppImage) 
 
 
 ![Screenshot](/src/assets/screenshot.png)
