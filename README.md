@@ -16,3 +16,5 @@ based on hid.spacemouse
 
 
 ![Screenshot](/src/assets/screenshot.png)
+
+Based on [https://github.com/microdee/hid.spacemouse](https://github.com/microdee/hid.spacemouse)
