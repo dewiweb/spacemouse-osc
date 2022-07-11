@@ -4,7 +4,7 @@
     "name": "dewiweb",
     "email": "dewiweb@gmail.com"
   },
-  "version": "1.0.6",
+  "version": "1.0.7",
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
@@ -58,9 +58,6 @@
           ]
         }
       ]
-    },
-    "mac" :{
-      "target":"dmg"
     }
   }
 }
