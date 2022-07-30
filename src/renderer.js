@@ -26,6 +26,11 @@ ipcRenderer.on('appVersion', function (event, appVersion) {
     ipcRenderer.send('showPreferences');
   })
 
+  ipcRenderer.on('incoming_index', (e, inc_index)=>{
+    console.log('inc_index',inc_index)
+    document.getElementById('index').value = inc_index;
+  })
+
 
   ipcRenderer.on('incoming_datas',(event,translateX,translateY,translateZ,rotateX,rotateY,rotateZ)=>{
     console.log(translateX,translateY,translateZ,rotateX,rotateY,rotateZ)

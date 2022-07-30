@@ -107,6 +107,22 @@ function createWindow() {
         form: {
           groups: [
             {
+              label: '',
+              fields: [
+                {
+                  label: '',
+                  key: 'osc_id',
+                  type: 'checkbox',
+                  help: "if incoming message contains number, it's use as index",
+                  options: [
+                    {
+                      label: 'incoming osc control index',
+                      value: 'on',
+                      
+                    },
+                  ],
+                },
+              ]
             },
           ],
         },
@@ -168,66 +184,78 @@ function createWindow() {
     ]
   })
 
-//------//
-ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value) => {
-  console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
-  //console.log(index_or_not)
-  if (index_or_not == "visible") {
-    oscCli.send({
-      timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
-      packets: [{
-        address: prefix + "/" + index + attr,
-        args: [
-          {
-            type: "f",
-            value: value
-          }
+  //------//
+  ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value) => {
+    console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
+    //console.log(index_or_not)
+    if (index_or_not == "visible") {
+      oscCli.send({
+        timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
+        packets: [{
+          address: prefix + "/" + index + attr,
+          args: [
+            {
+              type: "f",
+              value: value
+            }
+          ]
+        }
         ]
-      }
-      ]
-    }, OSCserverIP, OSCserverPort)
-  }
-  else {
-    oscCli.send({
-      timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
-      packets: [{
-        address: prefix + attr,
-        args: [
-          {
-            type: "f",
-            value: value
-          }
+      }, OSCserverIP, OSCserverPort)
+    }
+    else {
+      oscCli.send({
+        timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
+        packets: [{
+          address: prefix + attr,
+          args: [
+            {
+              type: "f",
+              value: value
+            }
+          ]
+        }
         ]
-      }
-      ]
-    }, OSCserverIP, OSCserverPort)
-  }
-})
-
-function oscListening(){
-  oUDPport = preferences.value('network_settings.osc_receiver_port');
-  const oscCli = new osc.UDPPort({
-    localAddress: "0.0.0.0",
-    localPort: oUDPport,
-    metadata: true
+      }, OSCserverIP, OSCserverPort)
+    }
   })
-  oscCli.open()
-  oscCli.on('ready', function () {
-    win.webContents.on('did-finish-load', () => {
-      win.webContents.send('udpportOK', (preferences.value('network_settings.osc_receiver_port')));
+
+  function oscListening() {
+    oUDPport = preferences.value('network_settings.osc_receiver_port');
+    const oscCli = new osc.UDPPort({
+      localAddress: "0.0.0.0",
+      localPort: oUDPport,
+      metadata: true
     })
-  })
-  oscCli.on("error", (error) => {
-
-    msg = error.message;
-    win.webContents.on('did-finish-load', () => {
-      console.log("An error occurred with OSC listening: ", error.message);
-  
-      win.webContents.send('udpportKO', msg);
-      oscCli.close()
+    oscCli.open();
+    oscCli.on("message", (oscBundle) => {
+      console.log('oscBundle : ', oscBundle);
+      let oRaddr = JSON.stringify(oscBundle.address);
+      console.log("OSC Address received", oRaddr);
+      let oRargs = JSON.stringify((oscBundle.args[0]).value);
+      console.log("oRargs", oRargs);
+      let inc_index = oRargs.match((/\d+/g));
+      console.log('inc_index', inc_index)
+      if (inc_index !== undefined) {
+        win.webContents.send('incoming_index', Number(inc_index[0]))
+      }
     });
-  });
-}oscListening()
+    oscCli.on('ready', function () {
+      win.webContents.on('did-finish-load', () => {
+        win.webContents.send('udpportOK', (preferences.value('network_settings.osc_receiver_port')));
+      })
+    })
+    oscCli.on("error", (error) => {
+
+      msg = error.message;
+      win.webContents.on('did-finish-load', () => {
+        console.log("An error occurred with OSC listening: ", error.message);
+
+        win.webContents.send('udpportKO', msg);
+        oscCli.close()
+      });
+    });
+  } oscListening()
 
 
 
@@ -293,22 +321,22 @@ function oscListening(){
 
 
 
-preferences.on('click', (key) => {
-  if (key === 'applyButton') {
-    console.log("listening port changed!")
-    win.webContents.send('udpportOK', (preferences.value('network_settings.osc_receiver_port')));
-    oscCli.close();
-    oscListening();
-    oscCli.on("error", function (error) {
-      msg = error.message
-      console.log("An error occurred with OSC listening: ", error.message);
-      win.webContents.send('udpportKO', msg)
-      win.webContents.send('resolveError')
-    });
+  preferences.on('click', (key) => {
+    if (key === 'applyButton') {
+      console.log("listening port changed!")
+      win.webContents.send('udpportOK', (preferences.value('network_settings.osc_receiver_port')));
+      oscCli.close();
+      oscListening();
+      oscCli.on("error", function (error) {
+        msg = error.message
+        console.log("An error occurred with OSC listening: ", error.message);
+        win.webContents.send('udpportKO', msg)
+        win.webContents.send('resolveError')
+      });
 
-    //eGet.connect()
-  }
-});
+      //eGet.connect()
+    }
+  });
 }
 
 app.whenReady().then(createWindow)
