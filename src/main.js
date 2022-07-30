@@ -1,15 +1,23 @@
 const osc = require('osc')
-const oUDPport = 0;
 //const oServerIP = "";
-const lib = require('./mainFunctions')
+//const lib = require('./mainFunctions')
 const electron = require('electron')
 const { ipcMain } = require('electron')
 const nativeTheme = electron.nativeTheme;
 nativeTheme.themeSource = 'dark';
 const { app, BrowserWindow } = require('electron');
-const mainFunctions = require('./mainFunctions');
+const ElectronPreferences = require('electron-preferences');
+const contextMenu = require('electron-context-menu');
+const fs = require('fs');
+const defaultDir = app.getPath('documents') + '/spacemouse-OSC';
+if (!fs.existsSync(defaultDir)) {
+  fs.mkdirSync(defaultDir)
+};
+
+//const mainFunctions = require('./mainFunctions');
 const { dialog } = require('electron')
 const { webContents } = require('electron')
+const log = require('electron-log');
 var translateX = 0
 var translateY = 0
 var translateZ = 0
@@ -23,76 +31,214 @@ const appVersion = app.getVersion()
 
 
 
-ipcMain.on("ok_to_send",(event,prefix,index,index_or_not,attr,value,OSCserverIP,OSCserverPort) =>{
-  console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
-  //console.log(index_or_not)
-  if(index_or_not == "visible"){
-  oscCli.send({
-    timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
-    packets: [{
-      address: prefix + "/" + index + attr,
-      args: [
-          {
-              type: "f",
-              value: value
-          }
-      ]
-  }
-]},OSCserverIP,OSCserverPort)
-}
-else{
-  oscCli.send({
-    timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
-    packets: [{
-      address: prefix + attr,
-      args: [
-          {
-              type: "f",
-              value: value
-          }
-      ]
-  }
-]},OSCserverIP,OSCserverPort)
-}
-})
 
 
 
 
 function createWindow() {
 
-    let win = new BrowserWindow({
+  let win = new BrowserWindow({
     width: 1200,
     height: 430,
     webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
+      nodeIntegration: true,
+      contextIsolation: false,
 
     },
     icon: `${__dirname}/assets/icons/64x64.png`
+  })
+  win.setMenu(null);
+  win.loadFile('src/index.html')
+  //win.webContents.openDevTools()
+
+
+  const preferences = new ElectronPreferences({
+    browserWindowOpts: {
+      title: 'preferences',
+      icon: `${__dirname}/assets/icons/64x64.png`
+    },
+    css: './src/style.css',
+    dataStore: defaultDir + '/config.json',
+    defaults: {
+      "network_settings": {
+        "osc_server": "127.0.0.1:12000",
+        "osc_receiver_port": "9000",
+      },
+      "other_settings": {
+      }
+    },
+    sections: [
+      {
+        id: 'network_settings',
+        label: 'Network Settings',
+        icon: 'preferences',
+        form: {
+          groups: [
+            {
+              label: 'OSC settings',
+              fields: [
+                {
+                  label: 'Sending to "Ip Address:Port" :',
+                  key: 'osc_server',
+                  type: 'text',
+                  help: 'example: 127.0.0.1:12000'
+                },
+                {
+                  label: 'Listening on "Port" : ',
+                  key: 'osc_receiver_port',
+                  type: 'number'
+                },
+                {
+                  label: '',
+                  key: 'applyButton',
+                  type: 'button',
+                  buttonLabel: 'Apply',
+                  hideLabel: true,
+                },
+              ]
+            },
+          ],
+        },
+      },
+      {
+        id: 'other_settings',
+        label: 'Other Settings',
+        icon: 'settings-gear-63',
+        form: {
+          groups: [
+            {
+            },
+          ],
+        },
+      },
+    ],
+    //debug:true
+  });
+
+  const OSCserverIP = ((preferences.value('network_settings.osc_server')).split(":"))[0];
+  const OSCserverPort = Number(((preferences.value('network_settings.osc_server')).split(":"))[1]);
+
+  preferences.on('save', (preferences) => {
+    console.log("preferences:", preferences);
+    console.log(`Preferences were saved.`, JSON.stringify(preferences, null, 4));
+  });
+
+
+  function logDefinition() {
+    console.log = log.log;
+    Object.assign(console, log.functions);
+    log.transports.console.format = '{h}:{i}:{s} / {text}';
+    log.catchErrors({
+      showDialog: false,
+      onError(error) {
+        electron.dialog.showMessageBox({
+          title: 'An error occurred',
+          message: error.message,
+          detail: error.stack,
+          type: 'error',
+          buttons: ['Ignore', 'Preferences', 'Exit'],
+        })
+          .then((result) => {
+            if (result.response === 1) {
+              win.webContents.send('resolveError')
+            }
+
+            if (result.response === 2) {
+              electron.app.quit();
+            }
+          });
+      }
     })
-    win.setMenu(null);
-    win.loadFile('src/index.html')
-    //win.webContents.openDevTools()
+  }
+  logDefinition();
 
+  contextMenu({
+    window: win,
+    labels: {
+      copy: "📄 | Copy",
+      paste: "📋 | Paste",
+      cut: "✂ | Cut"
+    },
+    /* Context Menu Items */
+    menu: (actions, params, win, dicSuggestion) => [
+      /* System Buttons */
+      actions.copy(),
+      actions.cut(),
+      actions.paste(),
+    ]
+  })
 
-    oscCli = new osc.UDPPort({
-        localAddress: "0.0.0.0",
-        localPort: 7007,
-        metadata: true
+//------//
+ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value) => {
+  console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
+  //console.log(index_or_not)
+  if (index_or_not == "visible") {
+    oscCli.send({
+      timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
+      packets: [{
+        address: prefix + "/" + index + attr,
+        args: [
+          {
+            type: "f",
+            value: value
+          }
+        ]
+      }
+      ]
+    }, OSCserverIP, OSCserverPort)
+  }
+  else {
+    oscCli.send({
+      timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
+      packets: [{
+        address: prefix + attr,
+        args: [
+          {
+            type: "f",
+            value: value
+          }
+        ]
+      }
+      ]
+    }, OSCserverIP, OSCserverPort)
+  }
+})
+
+function oscListening(){
+  oUDPport = preferences.value('network_settings.osc_receiver_port');
+  const oscCli = new osc.UDPPort({
+    localAddress: "0.0.0.0",
+    localPort: oUDPport,
+    metadata: true
+  })
+  oscCli.open()
+  oscCli.on('ready', function () {
+    win.webContents.on('did-finish-load', () => {
+      win.webContents.send('udpportOK', (preferences.value('network_settings.osc_receiver_port')));
     })
-    oscCli.open()
+  })
+  oscCli.on("error", (error) => {
+
+    msg = error.message;
+    win.webContents.on('did-finish-load', () => {
+      console.log("An error occurred with OSC listening: ", error.message);
+  
+      win.webContents.send('udpportKO', msg);
+      oscCli.close()
+    });
+  });
+}oscListening()
 
 
 
 
 
-    
-    win.autoHideMenuBar = "true"
+
+  win.autoHideMenuBar = "true"
   win.menuBarVisible = "false"
   win.webContents.on('did-finish-load', () => {
-  console.log("appVersion :", appVersion);
-  win.webContents.send('appVersion', app.getVersion())
+    console.log("appVersion :", appVersion);
+    win.webContents.send('appVersion', app.getVersion())
 
   })
 
@@ -103,45 +249,66 @@ function createWindow() {
       console.log('Port du server OSC distant:', oServerPort);
       win.webContents.send('oServerOK');
     })
-  }) 
-  
-async function main(){
-sm = require("./lib.js");
-iteration = 1
-console.log ("operationnal1");
-sm.spaceMice.onData = mouse => {
-    console.clear();
-//    console.log ("operationnal2");
-datas = JSON.stringify(mouse.mice[0], null, 2);
-translateX = mouse.mice[0].translate.x;
-translateY = mouse.mice[0].translate.y;
-translateZ = mouse.mice[0].translate.z;
-rotateX = mouse.mice[0].rotate.x;
-rotateY = mouse.mice[0].rotate.y;
-rotateZ = mouse.mice[0].rotate.z;
-buttons = mouse.mice[0].buttons;
-win.webContents.send("buttons",buttons)
+  })
 
-sendFrequency = 3
+  async function main() {
+    sm = require("./lib.js");
+    iteration = 1
+    console.log("operationnal1");
+    sm.spaceMice.onData = mouse => {
+      console.clear();
+      //    console.log ("operationnal2");
+      datas = JSON.stringify(mouse.mice[0], null, 2);
+      translateX = mouse.mice[0].translate.x;
+      translateY = mouse.mice[0].translate.y;
+      translateZ = mouse.mice[0].translate.z;
+      rotateX = mouse.mice[0].rotate.x;
+      rotateY = mouse.mice[0].rotate.y;
+      rotateZ = mouse.mice[0].rotate.z;
+      buttons = mouse.mice[0].buttons;
+      win.webContents.send("buttons", buttons)
 
- if (iteration<sendFrequency){
-     iteration = iteration+1
- }
- else{
+      sendFrequency = 3
+
+      if (iteration < sendFrequency) {
+        iteration = iteration + 1
+      }
+      else {
 
 
-    //console.log(datas);
-    console.log(translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
-    win.webContents.send("incoming_datas", translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
-    iteration = 0
+        //console.log(datas);
+        console.log(translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
+        win.webContents.send("incoming_datas", translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
+        iteration = 0
+      }
+    }
+
+
+
+    //win.webContents.send("incoming_datas", translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
   }
-}
+  main()
 
 
 
-//win.webContents.send("incoming_datas", translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
-}
-main()
+
+
+preferences.on('click', (key) => {
+  if (key === 'applyButton') {
+    console.log("listening port changed!")
+    win.webContents.send('udpportOK', (preferences.value('network_settings.osc_receiver_port')));
+    oscCli.close();
+    oscListening();
+    oscCli.on("error", function (error) {
+      msg = error.message
+      console.log("An error occurred with OSC listening: ", error.message);
+      win.webContents.send('udpportKO', msg)
+      win.webContents.send('resolveError')
+    });
+
+    //eGet.connect()
+  }
+});
 }
 
 app.whenReady().then(createWindow)
@@ -159,3 +326,4 @@ app.on('activate', () => {
     createWindow()
   }
 })
+

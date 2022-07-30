@@ -1,5 +1,5 @@
 {
-  "name": "mouse3d-osc",
+  "name": "spacemouse-osc",
   "author": {
     "name": "dewiweb",
     "email": "dewiweb@gmail.com"
@@ -17,6 +17,9 @@
     "publish": "electron-builder  build --publish always"
   },
   "dependencies": {
+    "electron-context-menu": "^3.3.0",
+    "electron-log": "^4.4.8",
+    "electron-preferences": "^2.7.0",
     "node-hid": "^2.1.1",
     "osc": "^2.4.3"
   },
@@ -42,7 +45,7 @@
       ],
       "icon": "./src/assets/icon2.ico"
     },
-    "nsis":{
+    "nsis": {
       "oneClick": false,
       "installerIcon": "./src/assets/icon2.ico",
       "uninstallerIcon": "./src/assets/icon2.ico",

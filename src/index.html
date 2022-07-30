@@ -8,27 +8,14 @@
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
 </head>
 <body>
-   
-        <div class="form">
-          <form id="form3">
-            <label style="text-align: center;" for="fname">Enter Remote OSC Server
-              IP:Port</label><br><br>
-            <div style="padding-left: 10%;">
-              <input type="number" id="ip11" name="qip11" min="1" max="255" maxlength="3" size="3" autocomplete="on"
-                required value="192"><b> .</b>
-              <input type="number" id="ip21" name="ip21" min="0" max="255" maxlength="3" size="3" autocomplete="on" required
-                value="168"><b> .</b>
-              <input type="number" id="ip31" name="31" min="0" max="255" maxlength="3" size="3" autocomplete="on" required
-                value="100"><b> .</b>
-              <input type="number" id="ip41" name="41" min="1" max="255" maxlength="3" size="3" autocomplete="on" required
-                value="12"><b> :</b>
-              <input type="number" id="port2" name="port2" min="1" max="65535" maxlength="5" size="5" autocomplete="on"
-                required value="4003">
-                
-            </div>
-            <br />
-          </form>
-        </div>
+  <div id="menu" class="left" style="font-weight: bold; padding-left: 2%">
+    <button class="button preferencesBtn" id="preferencesBtn" onclick="prefs(this.id)">
+      Preferences
+    </button>
+<!--      <button class="button logBtn" id="logBtn" style="display: none;visibility: hidden;" onclick="logview(this.id)">
+      Logs
+    </button>
+  -->    </div>
       </div>
       <div>
         <div class="table">
@@ -114,10 +101,7 @@
             </tr>
             <tr style="visibility: hidden;">
               <td colspan="6" >factor: <input type="number" name="Factor" id="factor" value="1"></td>
-            </tr>
-            
-           
-            
+            </tr>            
           </table>
         </div>
       </div>

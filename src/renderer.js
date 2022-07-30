@@ -1,4 +1,14 @@
-const { ipcRenderer } = require('electron')
+const { ipcRenderer } = require('electron');
+const preferences = ipcRenderer.sendSync('getPreferences');
+const log = require('electron-log');
+function logDefinition() {
+  console.log = log.log;
+  Object.assign(console, log.functions);
+  log.transports.console.format = '{h}:{i}:{s} / {text}';
+}
+logDefinition();
+
+log.transports.div = log.transports.console
 
 
 ipcRenderer.on('appVersion', function (event, appVersion) {
@@ -8,17 +18,17 @@ ipcRenderer.on('appVersion', function (event, appVersion) {
     
   })
 
+  ipcRenderer.on('preferencesUpdated', (e, preferences) => {
+    console.log('Preferences were updated', preferences);
+  });
+
+  ipcRenderer.on('resolveError',(e)=>{
+    ipcRenderer.send('showPreferences');
+  })
+
 
   ipcRenderer.on('incoming_datas',(event,translateX,translateY,translateZ,rotateX,rotateY,rotateZ)=>{
     console.log(translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
-    var ip11 = document.getElementById("ip11").value;
-  var ip21 = document.getElementById("ip21").value;
-  var ip31 = document.getElementById("ip31").value;
-  var ip41 = document.getElementById("ip41").value;
-  var port2 = document.getElementById("port2").value;
-  var data1 = ip11 + "." + ip21 + "." + ip31 + "." + ip41;
-  OSCserverIP = data1;
-  OSCserverPort = port2;
     
     var factor = document.getElementById("factor").value
    document.getElementById("tr_x").value = Math.pow(translateX*(1), 3)*5*factor
@@ -41,7 +51,7 @@ ipcRenderer.on('appVersion', function (event, appVersion) {
     if(visibility !== "hidden"){
       var attr = table.rows[5].cells[i].firstChild.value
       var value = table.rows[6].cells[i].firstChild.value
-      ipcRenderer.send("ok_to_send",prefix,index,index_or_not, attr,value,OSCserverIP,OSCserverPort)
+      ipcRenderer.send("ok_to_send",prefix,index,index_or_not, attr,value)
 
     }
    }
@@ -258,4 +268,8 @@ function byp_6(event){
     document.getElementById("rt_z").style.visibility = "visible"
     document.getElementById("at_rt_z").style.visibility = "visible"
   }
+}
+
+function prefs(preferencesBtn) {
+  ipcRenderer.send('showPreferences');
 }
