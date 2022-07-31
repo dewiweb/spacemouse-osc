@@ -118,7 +118,7 @@ function createWindow() {
                     {
                       label: 'incoming osc control index',
                       value: 'on',
-                      
+
                     },
                   ],
                 },
