@@ -20,6 +20,13 @@ var rotateZ = 0
 //var oServerPort = 0
 const appVersion = app.getVersion()
 
+oscCli = new osc.UDPPort({
+  localAddress: "0.0.0.0",
+  localPort: 7007,
+  metadata: true
+})
+oscCli.open()
+
 
 
 
@@ -76,12 +83,7 @@ function createWindow() {
     //win.webContents.openDevTools()
 
 
-    oscCli = new osc.UDPPort({
-        localAddress: "0.0.0.0",
-        localPort: 7007,
-        metadata: true
-    })
-    oscCli.open()
+    
 
 
 
