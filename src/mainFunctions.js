@@ -1,10 +1,10 @@
-const {dialog} = require('electron');
+const { dialog } = require('electron');
 const fs = require('fs');
 
 module.exports = {
   //copied from https://github.com/jean-emmanuel/open-stage-control/blob/master/src/client/widgets/utils.js
 
-  clip: function(value,range) {
+  clip: function (value, range) {
 
     value = parseFloat(value)
 
@@ -20,71 +20,71 @@ module.exports = {
   //     log: true, or manual log scale (max log value)
   //     revertLog: boolean
 
-  mapToScale: function(value, rangeIn, rangeOut, decimals, log, revertlog) {
+  mapToScale: function (value, rangeIn, rangeOut, decimals, log, revertlog) {
 
-      // clip in
-      value = module.exports.clip(value,[rangeIn[0], rangeIn[1]])
+    // clip in
+    value = module.exports.clip(value, [rangeIn[0], rangeIn[1]])
 
 
-      // normalize
-      value = (value - rangeIn[0]) / (rangeIn[1] - rangeIn[0])
+    // normalize
+    value = (value - rangeIn[0]) / (rangeIn[1] - rangeIn[0])
 
-      // log scale
-      if (log) {
+    // log scale
+    if (log) {
 
-          var logScale = revertlog ? Math.abs(rangeIn[1] - rangeIn[0]) :
-                          Math.abs(rangeOut[1] - rangeOut[0])
+      var logScale = revertlog ? Math.abs(rangeIn[1] - rangeIn[0]) :
+        Math.abs(rangeOut[1] - rangeOut[0])
 
-          if (log !== true && log !== -1) logScale = Math.abs(log)
-          else if (logScale >= 100) logScale /= 10
-          else logScale = Math.max(logScale, 10)
+      if (log !== true && log !== -1) logScale = Math.abs(log)
+      else if (logScale >= 100) logScale /= 10
+      else logScale = Math.max(logScale, 10)
 
-          if (log < 0) revertlog = !revertlog
+      if (log < 0) revertlog = !revertlog
 
-          value = revertlog ?
-              Math.log(value * (logScale - 1) + 1) / Math.log(logScale) :
-              Math.pow(logScale, value) / (logScale - 1) - 1 / (logScale - 1)
+      value = revertlog ?
+        Math.log(value * (logScale - 1) + 1) / Math.log(logScale) :
+        Math.pow(logScale, value) / (logScale - 1) - 1 / (logScale - 1)
 
-      }
+    }
 
-      // scale out
-      value = value * (rangeOut[1] - rangeOut[0]) + rangeOut[0]
+    // scale out
+    value = value * (rangeOut[1] - rangeOut[0]) + rangeOut[0]
 
-      // clip out
-      value = module.exports.clip(value, [rangeOut[0], rangeOut[1]])
+    // clip out
+    value = module.exports.clip(value, [rangeOut[0], rangeOut[1]])
 
-      // decimals
-      if (decimals !== -1) value = parseFloat(value.toFixed(decimals))
+    // decimals
+    if (decimals !== -1) value = parseFloat(value.toFixed(decimals))
 
-      return value
+    return value
 
   },
 
-  oscToEmber: function(oscBundle) {
+  oscToEmber: function (oscBundle) {
     let oscArgs = JSON.stringify(oscBundle.args);
-    oscArgs = oscArgs.replace(/\s|\[|\]/g,"");
+    oscArgs = oscArgs.replace(/\s|\[|\]/g, "");
     oscArgs = JSON.parse(oscArgs);
     oscArgs = oscArgs.value;
     oscArgs = Number(oscArgs);
     console.log("oscArgs", oscArgs);
     return oscArgs
   },
-  embChPath: function(chNumb) {
+  embChPath: function (chNumb) {
     let eChPath = 'Channels.Inputs.INP   ';
     eChPath = eChPath.concat(chNumb.toString());
     return eChPath
   },
-  embFadLevPath: function(eChPath) {
+  embFadLevPath: function (eChPath) {
     let eFadLevPath = eChPath.concat('.Fader.Fader Level');
     return eFadLevPath
   },
-  pathToAddress: function(path) {
-    let oscAddress = path.replace(/\./g,'/');
+  pathToAddress: function (path) {
+    let oscAddress = path.replace(/\./g, '/');
     slash = "/";
     oscAddress = slash.concat(oscAddress);
     return oscAddress
   },
-  addressToPath: function(address) {
+  addressToPath: function (address) {
     let path = address.replace(/\//g, '.');
     path = path.slice(1);
     return path

@@ -1,8 +1,7 @@
 //import hid from "node-hid";
 hid = require("node-hid");
 
-function joinInt16(min, maj)
-{
+function joinInt16(min, maj) {
     var sign = maj & (1 << 7);
     var x = (((maj & 0xFF) << 8) | (min & 0xFF));
     if (sign) {
@@ -11,21 +10,19 @@ function joinInt16(min, maj)
     return x;
 }
 
-class spaceMouse
-{
+class spaceMouse {
     constructor(dev)
-        //, info) 
+    //, info) 
     {
-        this.translate = {x: 0, y:0, z:0};
-        this.rotate = {x:0, y:0, z:0};
+        this.translate = { x: 0, y: 0, z: 0 };
+        this.rotate = { x: 0, y: 0, z: 0 };
         this.buttons = (new Array(2)).fill(false);
-       // this.hidDevice = dev;
-       // this.hidInfo = info;
-        this.onData = sm => {};
+        // this.hidDevice = dev;
+        // this.hidInfo = info;
+        this.onData = sm => { };
 
         dev.on('data', (data => {
-            switch (data[0])
-            {
+            switch (data[0]) {
                 case 1:
                     this.translate.x = joinInt16(data[1], data[2]) / 350;
                     this.translate.y = joinInt16(data[3], data[4]) / 350;
@@ -41,7 +38,7 @@ class spaceMouse
                         let si = Number(i);
                         let mask = 1;
                         for (let j = 0; j < 2; j++) {
-                            this.buttons[si+j] = ((mask << j) & buttonbyte) > 0;
+                            this.buttons[si + j] = ((mask << j) & buttonbyte) > 0;
                         }
                     });
                     break;
@@ -51,15 +48,13 @@ class spaceMouse
     }
 }
 
-class spaceMice
-{
-    constructor()
-    {
-        this.translate = {x: 0, y:0, z:0};
-        this.rotate = {x:0, y:0, z:0};
+class spaceMice {
+    constructor() {
+        this.translate = { x: 0, y: 0, z: 0 };
+        this.rotate = { x: 0, y: 0, z: 0 };
         this.buttons = (new Array(2)).fill(false);
         this.mice = [];
-        this.onData = sm => {};
+        this.onData = sm => { };
 
         this.devices = hid.devices().filter(dev => dev.vendorId == 9583 && dev.product.includes("Space"));
         this.devices.forEach(dev => {
@@ -78,14 +73,14 @@ class spaceMice
                         y: cval.y + cm.translate.y,
                         z: cval.z + cm.translate.z,
                     }
-                }, {x: 0, y:0, z:0});
+                }, { x: 0, y: 0, z: 0 });
                 this.rotate = this.mice.reduce((cval, cm) => {
                     return {
                         x: cval.x + cm.rotate.x,
                         y: cval.y + cm.rotate.y,
                         z: cval.z + cm.rotate.z,
                     }
-                }, {x: 0, y:0, z:0});
+                }, { x: 0, y: 0, z: 0 });
                 this.buttons.fill(false);
                 this.mice.forEach(cm => {
                     for (let i = 0; i < this.buttons.length; i++) {
