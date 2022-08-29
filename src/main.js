@@ -28,9 +28,51 @@ var rotateZ = 0
 //var oServerPort = 0
 const appVersion = app.getVersion()
 
+oscCli = new osc.UDPPort({
+  localAddress: "0.0.0.0",
+  localPort: 7007,
+  metadata: true
+})
+oscCli.open()
 
 
 
+
+
+ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value, OSCserverIP, OSCserverPort) => {
+  console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
+  //console.log(index_or_not)
+  if (index_or_not == "visible") {
+    oscCli.send({
+      timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
+      packets: [{
+        address: prefix + "/" + index + attr,
+        args: [
+          {
+            type: "f",
+            value: value
+          }
+        ]
+      }
+      ]
+    }, OSCserverIP, OSCserverPort)
+  }
+  else {
+    oscCli.send({
+      timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
+      packets: [{
+        address: prefix + attr,
+        args: [
+          {
+            type: "f",
+            value: value
+          }
+        ]
+      }
+      ]
+    }, OSCserverIP, OSCserverPort)
+  }
+})
 
 
 
@@ -50,7 +92,6 @@ function createWindow() {
   win.setMenu(null);
   win.loadFile('src/index.html')
   //win.webContents.openDevTools()
-
 
   const preferences = new ElectronPreferences({
     browserWindowOpts: {
@@ -184,6 +225,7 @@ function createWindow() {
     ]
   })
 
+
   //------//
   ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value) => {
     console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
@@ -261,7 +303,6 @@ function createWindow() {
 
 
 
-
   win.autoHideMenuBar = "true"
   win.menuBarVisible = "false"
   win.webContents.on('did-finish-load', () => {
@@ -278,6 +319,7 @@ function createWindow() {
       win.webContents.send('oServerOK');
     })
   })
+
 
   async function main() {
     sm = require("./lib.js");
