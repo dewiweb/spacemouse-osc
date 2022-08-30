@@ -1,6 +1,6 @@
 # spacemouse-osc
 
-An Electron App to generate OSC(Open-Sound-Control) from 3Dconnexion spacemouse compact  \
+An Electron App to generate OSC(Open-Sound-Control) from 3Dconnexion spacemouse compact datas  \
 based on [https://github.com/microdee/hid.spacemouse](https://github.com/microdee/hid.spacemouse) 
 
 "W-I-P!" 
