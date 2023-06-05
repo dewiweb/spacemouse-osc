@@ -4,17 +4,19 @@
     "name": "dewiweb",
     "email": "dewiweb@gmail.com"
   },
-  "version": "2.0.0-beta.2",
+  "version": "2.0.0-alpha.0",
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
     "electron": "^19.0.7",
-    "electron-builder": "^23.1.0"
+    "electron-builder": "^23.1.0",
+    "standard-version": "^9.5.0"
   },
   "scripts": {
     "start": "electron .",
     "package": "electron-builder build --win --x64",
-    "publish": "electron-builder  build --publish always"
+    "publish": "electron-builder  build --publish always",
+    "release": "standard-version"
   },
   "dependencies": {
     "electron-context-menu": "^3.3.0",
@@ -57,7 +59,8 @@
         {
           "target": "AppImage",
           "arch": [
-            "x64"
+            "x64",
+            "armv7l"
           ]
         }
       ]
