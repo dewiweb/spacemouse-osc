@@ -1,5 +1,4 @@
-name: 
-  Build/release
+name: Build/release
 on: push
 
 env:
@@ -12,6 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
+        version: [16]
 
     steps:
       - name: Check out Git repository
@@ -25,5 +25,5 @@ jobs:
       - name: yarn install
         run: yarn install
       - name: publish
-      
+
         run: yarn run publish
