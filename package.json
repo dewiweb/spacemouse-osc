@@ -16,7 +16,7 @@
     "start": "electron .",
     "package": "electron-builder build --win --x64",
     "publish": "electron-builder  build --publish always",
-    "release": "standard-version",
+    "release": "standard-version"
   },
   "dependencies": {
     "electron-context-menu": "^3.3.0",
