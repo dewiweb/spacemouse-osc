@@ -59,8 +59,7 @@
         {
           "target": "AppImage",
           "arch": [
-            "x64",
-            "armv7l"
+            "x64"
           ]
         }
       ]
