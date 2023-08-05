@@ -17,7 +17,6 @@
     "package": "electron-builder build --win --x64",
     "publish": "electron-builder  build --publish always",
     "release": "standard-version",
-    "postinstall": "electron-rebuild"
   },
   "dependencies": {
     "electron-context-menu": "^3.3.0",
