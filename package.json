@@ -10,6 +10,7 @@
   "devDependencies": {
     "electron": "^19.0.7",
     "electron-builder": "^23.1.0",
+    "electron-rebuild": "^3.2.9",
     "standard-version": "^9.5.0"
   },
   "scripts": {
