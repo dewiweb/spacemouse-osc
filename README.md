@@ -21,11 +21,12 @@ based on [https://github.com/microdee/hid.spacemouse](https://github.com/microde
 
 To use spacemouse-osc on linux OS you'll have to add UDEV rules. Create a `/etc/udev/rules.d/90-3dconnexion.rules` file(as root) containing :
 
-``># 3D Connexion vendor devices  
+``
+># 3D Connexion vendor devices  
 >KERNEL=="hidraw*", ATTRS{idVendor}=="256f", ATTRS{idProduct}=="c603", MODE="0666"  
 >KERNEL=="hidraw*", ATTRS{idVendor}=="256f", ATTRS{idProduct}=="c605", MODE="0666"  
 >KERNEL=="hidraw*", ATTRS{idVendor}=="256f", ATTRS{idProduct}=="c606", MODE="0666"  
->>KERNEL=="hidraw*", ATTRS{idVendor}=="256f", ATTRS{idProduct}=="c621", MODE="0666"  
+>KERNEL=="hidraw*", ATTRS{idVendor}=="256f", ATTRS{idProduct}=="c621", MODE="0666"  
 >KERNEL=="hidraw*", ATTRS{idVendor}=="256f", ATTRS{idProduct}=="c623", MODE="0666"  
 >KERNEL=="hidraw*", ATTRS{idVendor}=="256f", ATTRS{idProduct}=="c625", MODE="0666"  
 >KERNEL=="hidraw*", ATTRS{idVendor}=="256f", ATTRS{idProduct}=="c626", MODE="0666"  
