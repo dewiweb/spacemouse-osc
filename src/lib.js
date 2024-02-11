@@ -34,7 +34,7 @@ class spaceMouse {
                     this.rotate.z = joinInt16(data[5], data[6]) / 350;
                     break;
                 case 3:
-                    data.slice(1, 2).forEach((buttonbyte, i) => {
+                    data.slice(1, 2).forEach((buttonbyte, i) => { 
                         let si = Number(i);
                         let mask = 1;
                         for (let j = 0; j < 2; j++) {
@@ -55,8 +55,8 @@ class spaceMice {
         this.buttons = (new Array(2)).fill(false);
         this.mice = [];
         this.onData = sm => { };
-
-        this.devices = hid.devices().filter(dev => dev.vendorId == 9583 && dev.product.includes("Space"));
+        
+        this.devices = hid.devices().filter(dev => (dev.vendorId == 9583 | dev.vendorId == 1133) && dev.product.includes("Space")); //9583 Spacemouse, 1133 Pro, XXXX Enterprise, XXXX Wireless, XXXX Pro Wireless?
         this.devices.forEach(dev => {
             try {
                 this.mice.push(new spaceMouse(new hid.HID(dev.path), dev))
@@ -84,7 +84,7 @@ class spaceMice {
                 this.buttons.fill(false);
                 this.mice.forEach(cm => {
                     for (let i = 0; i < this.buttons.length; i++) {
-                        this.buttons[i] = this.buttons[i] || cm.buttons[i];
+                        this.buttons[i] = this.buttons[i] || cm.buttons[i];       
                     }
                 });
                 this.onData(this);
