@@ -221,3 +221,15 @@ caption{
   margin-left: 10px;
   font-weight: lighter;
 }
+
+datalist {
+
+}
+
+option {
+}
+
+input[type="range"] {
+  width: 200px;
+  margin: 0;
+}

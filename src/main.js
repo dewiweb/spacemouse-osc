@@ -40,8 +40,8 @@ oscCli.open()
 
 
 ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value, OSCserverIP, OSCserverPort) => {
-  console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
-  //console.log(index_or_not)
+  //console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
+  ////console.log(index_or_not)
   if (index_or_not == "visible") {
     oscCli.send({
       timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
@@ -91,7 +91,7 @@ function createWindow() {
   })
   win.setMenu(null);
   win.loadFile('src/index.html')
-  //win.webContents.openDevTools()
+  //win.webContents.openDevTools({ mode: "detach" });
 
   const preferences = new ElectronPreferences({
     browserWindowOpts: {
@@ -176,13 +176,13 @@ function createWindow() {
   const OSCserverPort = Number(((preferences.value('network_settings.osc_server')).split(":"))[1]);
 
   preferences.on('save', (preferences) => {
-    console.log("preferences:", preferences);
-    console.log(`Preferences were saved.`, JSON.stringify(preferences, null, 4));
+    //console.log("preferences:", preferences);
+    //console.log(`Preferences were saved.`, JSON.stringify(preferences, null, 4));
   });
 
 
   function logDefinition() {
-    console.log = log.log;
+    //console.log = log.log;
     Object.assign(console, log.functions);
     log.transports.console.format = '{h}:{i}:{s} / {text}';
     log.catchErrors({
@@ -228,8 +228,8 @@ function createWindow() {
 
   //------//
   ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value) => {
-    console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
-    //console.log(index_or_not)
+    //console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
+    ////console.log(index_or_not)
     if (index_or_not == "visible") {
       oscCli.send({
         timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
@@ -271,13 +271,13 @@ function createWindow() {
     })
     oscCli.open();
     oscCli.on("message", (oscBundle) => {
-      console.log('oscBundle : ', oscBundle);
+      //console.log('oscBundle : ', oscBundle);
       let oRaddr = JSON.stringify(oscBundle.address);
-      console.log("OSC Address received", oRaddr);
+      //console.log("OSC Address received", oRaddr);
       let oRargs = JSON.stringify((oscBundle.args[0]).value);
-      console.log("oRargs", oRargs);
+      //console.log("oRargs", oRargs);
       let inc_index = oRargs.match((/\d+/g));
-      console.log('inc_index', inc_index)
+      //console.log('inc_index', inc_index)
       if (inc_index !== undefined) {
         win.webContents.send('incoming_index', Number(inc_index[0]))
       }
@@ -291,7 +291,7 @@ function createWindow() {
 
       msg = error.message;
       win.webContents.on('did-finish-load', () => {
-        console.log("An error occurred with OSC listening: ", error.message);
+        //console.log("An error occurred with OSC listening: ", error.message);
 
         win.webContents.send('udpportKO', msg);
         oscCli.close()
@@ -306,16 +306,16 @@ function createWindow() {
   win.autoHideMenuBar = "true"
   win.menuBarVisible = "false"
   win.webContents.on('did-finish-load', () => {
-    console.log("appVersion :", appVersion);
+    //console.log("appVersion :", appVersion);
     win.webContents.send('appVersion', app.getVersion())
 
   })
 
   ipcMain.on('sendOSCserverIP', (event, oServerIP) => {
-    console.log('IP du server OSC distant:', oServerIP);
+    //console.log('IP du server OSC distant:', oServerIP);
 
     ipcMain.on('sendOSCserverPort', (event, oServerPort) => {
-      console.log('Port du server OSC distant:', oServerPort);
+      //console.log('Port du server OSC distant:', oServerPort);
       win.webContents.send('oServerOK');
     })
   })
@@ -324,10 +324,10 @@ function createWindow() {
   async function main() {
     sm = require("./lib.js");
     iteration = 1
-    console.log("operationnal1");
+    //console.log("operationnal1");
     sm.spaceMice.onData = mouse => {
       console.clear();
-      //    console.log ("operationnal2");
+      //    //console.log ("operationnal2");
       datas = JSON.stringify(mouse.mice[0], null, 2);
       translateX = mouse.mice[0].translate.x;
       translateY = mouse.mice[0].translate.y;
@@ -346,8 +346,8 @@ function createWindow() {
       else {
 
 
-        //console.log(datas);
-        console.log(translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
+        ////console.log(datas);
+        //console.log(translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
         win.webContents.send("incoming_datas", translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
         iteration = 0
       }
@@ -365,13 +365,13 @@ function createWindow() {
 
   preferences.on('click', (key) => {
     if (key === 'applyButton') {
-      console.log("listening port changed!")
+      //console.log("listening port changed!")
       win.webContents.send('udpportOK', (preferences.value('network_settings.osc_receiver_port')));
       oscCli.close();
       oscListening();
       oscCli.on("error", function (error) {
         msg = error.message
-        console.log("An error occurred with OSC listening: ", error.message);
+        //console.log("An error occurred with OSC listening: ", error.message);
         win.webContents.send('udpportKO', msg)
         win.webContents.send('resolveError')
       });

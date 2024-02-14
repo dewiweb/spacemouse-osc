@@ -1,6 +1,7 @@
 const { ipcRenderer } = require('electron');
 const preferences = ipcRenderer.sendSync('getPreferences');
 const log = require('electron-log');
+
 function logDefinition() {
   console.log = log.log;
   Object.assign(console, log.functions);
@@ -14,12 +15,12 @@ log.transports.div = log.transports.console
 ipcRenderer.on('appVersion', function (event, appVersion) {
   document.getElementById("appVersion").innerHTML = document.getElementById("appVersion").innerHTML + appVersion;
   //document.getElementById("filepath").innerHTML = "none";
-  console.log("appVersion:", appVersion);
+  //console.log("appVersion:", appVersion);
 
 })
 
 ipcRenderer.on('preferencesUpdated', (e, preferences) => {
-  console.log('Preferences were updated', preferences);
+  //console.log('Preferences were updated', preferences);
 });
 
 ipcRenderer.on('resolveError', (e) => {
@@ -27,37 +28,63 @@ ipcRenderer.on('resolveError', (e) => {
 })
 
 ipcRenderer.on('incoming_index', (e, inc_index) => {
-  console.log('inc_index', inc_index)
+  //console.log('inc_index', inc_index)
   document.getElementById('index').value = inc_index;
 })
 
 
 ipcRenderer.on('incoming_datas', (event, translateX, translateY, translateZ, rotateX, rotateY, rotateZ) => {
-  console.log(translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
-
+  //console.log(translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
+ 
+  var precision =document.getElementById("precision").value
   var factor = document.getElementById("factor").value
+  if(precision=="0"){
   document.getElementById("tr_x").value = Math.pow(translateX * (1), 3) * 5 * factor
   document.getElementById("tr_y").value = Math.pow(translateY * (1), 3) * -5 * factor
   document.getElementById("tr_z").value = Math.pow(translateZ * (1), 3) * -5 * factor
   document.getElementById("rt_x").value = Math.pow(rotateX * (1), 3) * 5 * factor
   document.getElementById("rt_y").value = Math.pow(rotateY * (1), 3) * -5 * factor
   document.getElementById("rt_z").value = Math.pow(rotateZ * (1), 3) * 5 * factor
+  }else if(precision== "10"){
+    document.getElementById("tr_x").value = Math.round((Math.pow(translateX * (1), 3) * 5 * factor)*10)/10
+    document.getElementById("tr_y").value = Math.round((Math.pow(translateY * (1), 3) * -5 * factor)*10)/10
+    document.getElementById("tr_z").value = Math.round((Math.pow(translateZ * (1), 3) * -5 * factor)*10)/10
+    document.getElementById("rt_x").value = Math.round((Math.pow(rotateX * (1), 3) * 5 * factor)*10)/10
+    document.getElementById("rt_y").value = Math.round((Math.pow(rotateY * (1), 3) * -5 * factor)*10)/10
+    document.getElementById("rt_z").value = Math.round((Math.pow(rotateZ * (1), 3) * 5 * factor)*10)/10
+  }else if(precision== "100"){
+    document.getElementById("tr_x").value = Math.round((Math.pow(translateX * (1), 3) * 5 * factor)*100)/100
+    document.getElementById("tr_y").value = Math.round((Math.pow(translateY * (1), 3) * -5 * factor)*100)/100
+    document.getElementById("tr_z").value = Math.round((Math.pow(translateZ * (1), 3) * -5 * factor)*100)/100
+    document.getElementById("rt_x").value = Math.round((Math.pow(rotateX * (1), 3) * 5 * factor)*100)/100
+    document.getElementById("rt_y").value = Math.round((Math.pow(rotateY * (1), 3) * -5 * factor)*100)/100
+    document.getElementById("rt_z").value = Math.round((Math.pow(rotateZ * (1), 3) * 5 * factor)*100)/100
+  }else if(precision== "1000"){
+    document.getElementById("tr_x").value = Math.round((Math.pow(translateX * (1), 3) * 5 * factor)*1000)/1000
+    document.getElementById("tr_y").value = Math.round((Math.pow(translateY * (1), 3) * -5 * factor)*1000)/1000
+    document.getElementById("tr_z").value = Math.round((Math.pow(translateZ * (1), 3) * -5 * factor)*1000)/1000
+    document.getElementById("rt_x").value = Math.round((Math.pow(rotateX * (1), 3) * 5 * factor)*1000)/1000
+    document.getElementById("rt_y").value = Math.round((Math.pow(rotateY * (1), 3) * -5 * factor)*1000)/1000
+    document.getElementById("rt_z").value = Math.round((Math.pow(rotateZ * (1), 3) * 5 * factor)*1000)/1000
+  }
   var index_or_not = document.getElementById("index").style.visibility
-  console.log("visibility of index value : ", index_or_not)
+  //console.log("visibility of index value : ", index_or_not)
   var prefix = document.getElementById("prefix").value
   var index = document.getElementById("index").value
   var table = document.getElementById("tableOfConnection")
-  //console.log("table",table.rows[5])
+  ////console.log("table",table.rows[5])
   for (i = 0; i < table.rows[5].cells.length; i++) {
-    console.log("table_row_5, cell " + i + ":", table.rows[5].cells[i])
+    //console.log("table_row_5, cell " + i + ":", table.rows[5].cells[i])
     var visibility = table.rows[5].cells[i].firstChild.style.visibility
-    console.log("quoi dans cellule?:", table.rows[5].cells[i].firstChild)
-    console.log("visibility : ", visibility)
+    //console.log("quoi dans cellule?:", table.rows[5].cells[i].firstChild)
+    //console.log("visibility : ", visibility)
     if (visibility !== "hidden") {
+      let now = Date();
       var attr = table.rows[5].cells[i].firstChild.value
-      var value = table.rows[6].cells[i].firstChild.value
-      ipcRenderer.send("ok_to_send", prefix, index, index_or_not, attr, value)
 
+      var inc_value = table.rows[6].cells[i].firstChild.value
+        
+        ipcRenderer.send("ok_to_send", prefix, index, index_or_not, attr, inc_value)
     }
   }
 

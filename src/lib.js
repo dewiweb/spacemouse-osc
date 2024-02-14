@@ -61,8 +61,8 @@ class spaceMice {
             try {
                 this.mice.push(new spaceMouse(new hid.HID(dev.path), dev))
             } catch (error) {
-                console.log(`can't open device ${dev.productId}, ${dev.product}`);
-                console.log(error);
+                //console.log(`can't open device ${dev.productId}, ${dev.product}`);
+                //console.log(error);
             }
         });
         this.mice.forEach(mouse => {

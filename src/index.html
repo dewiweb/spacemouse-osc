@@ -99,8 +99,18 @@
                   <script>byp6.addEventListener('click', byp_6)</script>
               </td>
             </tr>
-            <tr style="visibility: hidden;">
-              <td colspan="6" >factor: <input type="number" name="Factor" id="factor" value="1"></td>
+            <tr>
+              <td colspan="3" >
+                <label for="precision">Precision:</label>
+
+<select name="precision" id="precision">
+  <option value="0">full</option>
+  <option value="10">0.1</option>
+  <option value="100">0.01</option>
+  <option value="1000">0.001</option>
+</select>
+              </td>
+              <td colspan="3" ><label for="factor">Factor:</label> <input type="number" name="factor" id="factor" value="1"></td>
             </tr>            
           </table>
         </div>
