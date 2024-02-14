@@ -24,7 +24,8 @@
     "electron-log": "^4.4.8",
     "electron-preferences": "^2.7.0",
     "node-hid": "^2.1.1",
-    "osc": "^2.4.3"
+    "osc": "^2.4.3",
+    "release-please": "^16.8.0"
   },
   "build": {
     "appId": "mouse3d-osc",
