@@ -4,7 +4,7 @@
     "name": "dewiweb",
     "email": "dewiweb@gmail.com"
   },
-  "version": "2.0.0-alpha.6",
+  "version": "2.0.0-alpha.7",
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
@@ -16,7 +16,8 @@
     "start": "electron .",
     "package": "electron-builder build --win --x64",
     "publish": "electron-builder  build --publish always",
-    "release": "standard-version"
+    "release": "standard-version",
+    "prerelease": "standard-version --prerelease"
   },
   "dependencies": {
     "electron-context-menu": "^3.3.0",
