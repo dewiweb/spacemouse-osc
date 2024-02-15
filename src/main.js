@@ -26,6 +26,7 @@ var rotateY = 0
 var rotateZ = 0
 //var oServerIP = "0.0.0.0"
 //var oServerPort = 0
+var sendFrequency = 3
 const appVersion = app.getVersion()
 
 oscCli = new osc.UDPPort({
@@ -320,6 +321,10 @@ function createWindow() {
     })
   })
 
+  ipcMain.on('sendRateChange', (event, rate) => {
+    //console.log('Rate : ', rate);
+    sendFrequency = 100/rate
+  })
 
   async function main() {
     sm = require("./lib.js");
@@ -338,7 +343,7 @@ function createWindow() {
       buttons = mouse.mice[0].buttons;
       win.webContents.send("buttons", buttons)
 
-      sendFrequency = 3
+      
 
       if (iteration < sendFrequency) {
         iteration = iteration + 1

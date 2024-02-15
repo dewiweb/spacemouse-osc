@@ -100,7 +100,7 @@
               </td>
             </tr>
             <tr>
-              <td colspan="3" >
+              <td colspan="2" >
                 <label for="precision">Precision:</label>
 
 <select name="precision" id="precision">
@@ -110,7 +110,12 @@
   <option value="1000">0.001</option>
 </select>
               </td>
-              <td colspan="3" ><label for="factor">Factor:</label> <input type="number" name="factor" id="factor" value="1"></td>
+              <td colspan="2" ><label for="factor">Factor:</label> <input type="number" name="factor" id="factor" value="1">
+              </td>
+              <td colspan="2" ><label for="sendRate">Send Rate:</label> <input type="number" name="sendRate" id="sendRate" value="33">
+                <script>sendRate.addEventListener('change', sendRateChange)</script>
+              </td>
+
             </tr>            
           </table>
         </div>

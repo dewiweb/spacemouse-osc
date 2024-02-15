@@ -305,3 +305,7 @@ function byp_6(event) {
 function prefs(preferencesBtn) {
   ipcRenderer.send('showPreferences');
 }
+
+function sendRateChange(event) {
+  ipcRenderer.send('sendRateChange', document.getElementById("sendRate").value);
+}
