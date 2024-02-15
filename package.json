@@ -4,7 +4,7 @@
     "name": "dewiweb",
     "email": "dewiweb@gmail.com"
   },
-  "version": "2.0.0-alpha.7",
+  "version": "2.0.0-alpha.8",
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
@@ -24,8 +24,7 @@
     "electron-log": "^4.4.8",
     "electron-preferences": "^2.7.0",
     "node-hid": "^2.1.1",
-    "osc": "^2.4.3",
-    "release-please": "^16.8.0"
+    "osc": "^2.4.3"
   },
   "build": {
     "appId": "mouse3d-osc",
