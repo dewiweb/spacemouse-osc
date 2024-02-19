@@ -41,8 +41,6 @@ oscCli.open()
 
 
 ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value, OSCserverIP, OSCserverPort) => {
-  //console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
-  ////console.log(index_or_not)
   if (index_or_not == "visible") {
     oscCli.send({
       timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
@@ -229,8 +227,6 @@ function createWindow() {
 
   //------//
   ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value) => {
-    //console.log("retour de gui : ", prefix + "/" + index + attr + " " + value)
-    ////console.log(index_or_not)
     if (index_or_not == "visible") {
       oscCli.send({
         timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
@@ -272,20 +268,15 @@ function createWindow() {
     })
     oscCli.open();
     oscCli.on("message", (oscBundle) => {
-      //console.log('oscBundle : ', oscBundle);
-      let oRaddr = JSON.stringify(oscBundle.address);
-      //console.log("OSC Address received", oRaddr);
-      let oRargs = JSON.stringify((oscBundle.args[0]).value);
-      //console.log("oRargs", oRargs);
-      let inc_index = oRargs.match((/\d+/g));
-      //console.log('inc_index', inc_index)
+      let oscBundleArguments = JSON.stringify((oscBundle.args[0]).value);
+      let inc_index = oscBundleArguments.match((/\d+/g));
       if (inc_index !== undefined) {
         win.webContents.send('incoming_index', Number(inc_index[0]))
       }
     });
     oscCli.on('ready', function () {
       win.webContents.on('did-finish-load', () => {
-        win.webContents.send('udpportOK', (preferences.value('network_settings.osc_receiver_port')));
+        win.webContents.send('udpPortOK', (preferences.value('network_settings.osc_receiver_port')));
       })
     })
     oscCli.on("error", (error) => {
@@ -294,7 +285,7 @@ function createWindow() {
       win.webContents.on('did-finish-load', () => {
         //console.log("An error occurred with OSC listening: ", error.message);
 
-        win.webContents.send('udpportKO', msg);
+        win.webContents.send('udpPortKO', msg);
         oscCli.close()
       });
     });
@@ -312,10 +303,10 @@ function createWindow() {
 
   })
 
-  ipcMain.on('sendOSCserverIP', (event, oServerIP) => {
+  ipcMain.on('sendOscServerIp', (event, oServerIP) => {
     //console.log('IP du server OSC distant:', oServerIP);
 
-    ipcMain.on('sendOSCserverPort', (event, oServerPort) => {
+    ipcMain.on('sendOscServerPort', (event, oServerPort) => {
       //console.log('Port du server OSC distant:', oServerPort);
       win.webContents.send('oServerOK');
     })
@@ -329,11 +320,9 @@ function createWindow() {
   async function main() {
     sm = require("./lib.js");
     iteration = 1
-    //console.log("operationnal1");
     sm.spaceMice.onData = mouse => {
       console.clear();
-      //    //console.log ("operationnal2");
-      datas = JSON.stringify(mouse.mice[0], null, 2);
+      data = JSON.stringify(mouse.mice[0], null, 2);
       translateX = mouse.mice[0].translate.x;
       translateY = mouse.mice[0].translate.y;
       translateZ = mouse.mice[0].translate.z;
@@ -349,18 +338,10 @@ function createWindow() {
         iteration = iteration + 1
       }
       else {
-
-
-        ////console.log(datas);
-        //console.log(translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
-        win.webContents.send("incoming_datas", translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
+        win.webContents.send("incoming_data", translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
         iteration = 0
       }
     }
-
-
-
-    //win.webContents.send("incoming_datas", translateX,translateY,translateZ,rotateX,rotateY,rotateZ)
   }
   main()
 
@@ -371,13 +352,13 @@ function createWindow() {
   preferences.on('click', (key) => {
     if (key === 'applyButton') {
       //console.log("listening port changed!")
-      win.webContents.send('udpportOK', (preferences.value('network_settings.osc_receiver_port')));
+      win.webContents.send('udpPortOK', (preferences.value('network_settings.osc_receiver_port')));
       oscCli.close();
       oscListening();
       oscCli.on("error", function (error) {
         msg = error.message
         //console.log("An error occurred with OSC listening: ", error.message);
-        win.webContents.send('udpportKO', msg)
+        win.webContents.send('udpPortKO', msg)
         win.webContents.send('resolveError')
       });
 

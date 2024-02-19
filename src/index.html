@@ -9,13 +9,14 @@
 </head>
 <body>
   <div id="menu" class="left" style="font-weight: bold; padding-left: 2%">
-    <button class="button preferencesBtn" id="preferencesBtn" onclick="prefs(this.id)">
+    <button class="button preferencesBtn" id="preferencesBtn" onclick="showPreferences(this.id)">
       &#9881;  Preferences
     </button>
-<!--      <button class="button logBtn" id="logBtn" style="display: none;visibility: hidden;" onclick="logview(this.id)">
+<!--      <button class="button logBtn" id="logBtn" style="display: none;visibility: hidden;" onclick="logView(this.id)">
       Logs
     </button>
-  -->    </div>
+  -->
+    </div>
       </div>
       <div>
         <div class="table">
@@ -104,10 +105,10 @@
                 <label for="precision">Precision:</label>
 
 <select name="precision" id="precision">
-  <option value="0">full</option>
-  <option value="10">0.1</option>
-  <option value="100">0.01</option>
-  <option value="1000">0.001</option>
+  <option value=1>full</option>
+  <option value=10>0.1</option>
+  <option value=100>0.01</option>
+  <option value=1000>0.001</option>
 </select>
               </td>
               <td colspan="2" ><label for="factor">Factor:</label> <input type="number" name="factor" id="factor" value="1">

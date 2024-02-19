@@ -33,40 +33,18 @@ ipcRenderer.on('incoming_index', (e, inc_index) => {
 })
 
 
-ipcRenderer.on('incoming_datas', (event, translateX, translateY, translateZ, rotateX, rotateY, rotateZ) => {
+ipcRenderer.on('incoming_data', (event, translateX, translateY, translateZ, rotateX, rotateY, rotateZ) => {
   //console.log(translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
  
   var precision =document.getElementById("precision").value
   var factor = document.getElementById("factor").value
-  if(precision=="0"){
-  document.getElementById("tr_x").value = Math.pow(translateX * (1), 3) * 5 * factor
-  document.getElementById("tr_y").value = Math.pow(translateY * (1), 3) * -5 * factor
-  document.getElementById("tr_z").value = Math.pow(translateZ * (1), 3) * -5 * factor
-  document.getElementById("rt_x").value = Math.pow(rotateX * (1), 3) * 5 * factor
-  document.getElementById("rt_y").value = Math.pow(rotateY * (1), 3) * -5 * factor
-  document.getElementById("rt_z").value = Math.pow(rotateZ * (1), 3) * 5 * factor
-  }else if(precision== "10"){
-    document.getElementById("tr_x").value = Math.round((Math.pow(translateX * (1), 3) * 5 * factor)*10)/10
-    document.getElementById("tr_y").value = Math.round((Math.pow(translateY * (1), 3) * -5 * factor)*10)/10
-    document.getElementById("tr_z").value = Math.round((Math.pow(translateZ * (1), 3) * -5 * factor)*10)/10
-    document.getElementById("rt_x").value = Math.round((Math.pow(rotateX * (1), 3) * 5 * factor)*10)/10
-    document.getElementById("rt_y").value = Math.round((Math.pow(rotateY * (1), 3) * -5 * factor)*10)/10
-    document.getElementById("rt_z").value = Math.round((Math.pow(rotateZ * (1), 3) * 5 * factor)*10)/10
-  }else if(precision== "100"){
-    document.getElementById("tr_x").value = Math.round((Math.pow(translateX * (1), 3) * 5 * factor)*100)/100
-    document.getElementById("tr_y").value = Math.round((Math.pow(translateY * (1), 3) * -5 * factor)*100)/100
-    document.getElementById("tr_z").value = Math.round((Math.pow(translateZ * (1), 3) * -5 * factor)*100)/100
-    document.getElementById("rt_x").value = Math.round((Math.pow(rotateX * (1), 3) * 5 * factor)*100)/100
-    document.getElementById("rt_y").value = Math.round((Math.pow(rotateY * (1), 3) * -5 * factor)*100)/100
-    document.getElementById("rt_z").value = Math.round((Math.pow(rotateZ * (1), 3) * 5 * factor)*100)/100
-  }else if(precision== "1000"){
-    document.getElementById("tr_x").value = Math.round((Math.pow(translateX * (1), 3) * 5 * factor)*1000)/1000
-    document.getElementById("tr_y").value = Math.round((Math.pow(translateY * (1), 3) * -5 * factor)*1000)/1000
-    document.getElementById("tr_z").value = Math.round((Math.pow(translateZ * (1), 3) * -5 * factor)*1000)/1000
-    document.getElementById("rt_x").value = Math.round((Math.pow(rotateX * (1), 3) * 5 * factor)*1000)/1000
-    document.getElementById("rt_y").value = Math.round((Math.pow(rotateY * (1), 3) * -5 * factor)*1000)/1000
-    document.getElementById("rt_z").value = Math.round((Math.pow(rotateZ * (1), 3) * 5 * factor)*1000)/1000
-  }
+    document.getElementById("tr_x").value = Math.round((Math.pow(translateX * (1), 3) * 5 * factor)*precision)/precision
+    document.getElementById("tr_y").value = Math.round((Math.pow(translateY * (1), 3) * -5 * factor)*precision)/precision
+    document.getElementById("tr_z").value = Math.round((Math.pow(translateZ * (1), 3) * -5 * factor)*precision)/precision
+    document.getElementById("rt_x").value = Math.round((Math.pow(rotateX * (1), 3) * 5 * factor)*precision)/precision
+    document.getElementById("rt_y").value = Math.round((Math.pow(rotateY * (1), 3) * -5 * factor)*precision)/precision
+    document.getElementById("rt_z").value = Math.round((Math.pow(rotateZ * (1), 3) * 5 * factor)*precision)/precision
+
   var index_or_not = document.getElementById("index").style.visibility
   //console.log("visibility of index value : ", index_or_not)
   var prefix = document.getElementById("prefix").value
@@ -76,8 +54,6 @@ ipcRenderer.on('incoming_datas', (event, translateX, translateY, translateZ, rot
   for (i = 0; i < table.rows[5].cells.length; i++) {
     //console.log("table_row_5, cell " + i + ":", table.rows[5].cells[i])
     var visibility = table.rows[5].cells[i].firstChild.style.visibility
-    //console.log("quoi dans cellule?:", table.rows[5].cells[i].firstChild)
-    //console.log("visibility : ", visibility)
     if (visibility !== "hidden") {
       let now = Date();
       var attr = table.rows[5].cells[i].firstChild.value
@@ -107,11 +83,11 @@ function displayForm3(event) {
   var ip41 = document.getElementById("ip41").value;
   var port2 = document.getElementById("port2").value;
   var data1 = ip11 + "." + ip21 + "." + ip31 + "." + ip41;
-  OSCserverIP = data1;
-  OSCserverPort = port2;
+  oscServerIp = data1;
+  oscServerPort = port2;
   add3.textContent = "OK!  Address : " + data1 + "   /   Port : " + port2;
-  ipcRenderer.send('sendOSCserverIP', data1);
-  ipcRenderer.send('sendOSCserverPort', Number(port2));
+  ipcRenderer.send('sendOscServerIp', data1);
+  ipcRenderer.send('sendOscServerPort', Number(port2));
   event.preventDefault();
 }
 
@@ -302,7 +278,7 @@ function byp_6(event) {
   }
 }
 
-function prefs(preferencesBtn) {
+function showPreferences(preferencesBtn) {
   ipcRenderer.send('showPreferences');
 }
 
