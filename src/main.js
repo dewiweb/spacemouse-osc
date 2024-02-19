@@ -92,7 +92,7 @@ function createWindow() {
   })
   win.setMenu(null);
   win.loadFile('src/index.html')
-  win.webContents.openDevTools({ mode: "detach" });
+  //win.webContents.openDevTools({ mode: "detach" });
 
   const preferences = new ElectronPreferences({
     browserWindowOpts: {
