@@ -2,6 +2,17 @@ const { ipcRenderer } = require('electron');
 const preferences = ipcRenderer.sendSync('getPreferences');
 const log = require('electron-log');
 
+function initInputs() {
+  document.addEventListener('wheel', (event) => {
+    const inputElement = event.target;
+    if (inputElement.type === 'number') {
+      event.preventDefault();
+      inputElement.value = parseInt(inputElement.value) + (event.deltaY > 0 ? 1 : -1);
+    }
+  }, { passive: false });
+}
+initInputs();
+
 function logDefinition() {
   console.log = log.log;
   Object.assign(console, log.functions);
@@ -11,11 +22,37 @@ logDefinition();
 
 log.transports.div = log.transports.console
 
+ipcRenderer.on("logInfo", (e, msg) => {
+  logger(msg);
+}
+);
+  function logger(msg){
+  let date = new Date();
+  date =
+    date.getHours() +
+    ":" +
+    (date.getMinutes() < 10 ? "0" : "") +
+    date.getMinutes() +
+    ":" +
+    (date.getSeconds() < 10 ? "0" : "") +
+    date.getSeconds() +
+    "-->";
+  if (document.getElementById("logging")) {
+    document
+      .getElementById("logging")
+      .insertAdjacentHTML("beforeend", date + JSON.stringify(msg) + "<br>");
+    scrollToBottom();
+  }
+};
+function scrollToBottom() {
+  document.getElementById("logging").scrollTop =
+    document.getElementById("logging").scrollHeight;
+}
+
 
 ipcRenderer.on('appVersion', function (event, appVersion) {
   document.getElementById("appVersion").innerHTML = document.getElementById("appVersion").innerHTML + appVersion;
-  //document.getElementById("filepath").innerHTML = "none";
-  //console.log("appVersion:", appVersion);
+
 
 })
 
@@ -91,197 +128,232 @@ function displayForm3(event) {
   event.preventDefault();
 }
 
-function aedMode(event) {
-  document.getElementById("btn1").className = "button_up"
-  document.getElementById("btn2").className = "button"
-  document.getElementById("btn3").className = "button"
-  document.getElementById("tr_x").style.visibility = "hidden"
-  document.getElementById("tr_y").style.visibility = "hidden"
-  document.getElementById("tr_z").style.visibility = "hidden"
-  document.getElementById("rt_x").style.visibility = "visible"
-  document.getElementById("rt_y").style.visibility = "visible"
-  document.getElementById("rt_z").style.visibility = "visible"
-  document.getElementById("at_tr_x").style.visibility = "hidden"
-  document.getElementById("at_tr_y").style.visibility = "hidden"
-  document.getElementById("at_tr_z").style.visibility = "hidden"
-  document.getElementById("at_rt_x").style.visibility = "visible"
-  document.getElementById("at_rt_y").style.visibility = "visible"
-  document.getElementById("at_rt_z").style.visibility = "visible"
-
-  fst_byp = document.getElementsByClassName("byp")
-  for (let i = 0; i < 3; i++) {
-    fst_byp.item(i).className = "button byp"
-  }
-  lst_byp = document.getElementsByClassName("byp")
-  for (let i = 3; i < 6; i++) {
-    fst_byp.item(i).className = "button_up byp"
+function modeChange(event) {
+  selection = event.target.value;
+  if(selection === "aed") {
+    aedMode();
+  } else if (selection === "xyz") {
+    xyzMode();
+  }else if (selection === "custom") {
+    customMode();
   }
 }
+function aedMode() {
+  document.getElementById("tr_x").parentElement.style.visibility = "hidden"
+  document.getElementById("tr_y").parentElement.style.visibility = "hidden"
+  document.getElementById("tr_z").parentElement.style.visibility = "hidden"
+  document.getElementById("rt_x").parentElement.style.visibility = "visible"
+  document.getElementById("rt_y").parentElement.style.visibility = "visible"
+  document.getElementById("rt_z").parentElement.style.visibility = "visible"
+  document.getElementById("at_tr_x").parentElement.style.visibility = "hidden"
+  document.getElementById("at_tr_y").parentElement.style.visibility = "hidden"
+  document.getElementById("at_tr_z").parentElement.style.visibility = "hidden"
+  document.getElementById("at_rt_x").parentElement.style.visibility = "visible"
+  document.getElementById("at_rt_y").parentElement.style.visibility = "visible"
+  document.getElementById("at_rt_z").parentElement.style.visibility = "visible"
 
-function xyzMode(event) {
-  document.getElementById("btn1").className = "button"
-  document.getElementById("btn2").className = "button_up"
-  document.getElementById("btn3").className = "button"
-  document.getElementById("rt_x").style.visibility = "hidden"
-  document.getElementById("rt_y").style.visibility = "hidden"
-  document.getElementById("rt_z").style.visibility = "hidden"
-  document.getElementById("tr_x").style.visibility = "visible"
-  document.getElementById("tr_y").style.visibility = "visible"
-  document.getElementById("tr_z").style.visibility = "visible"
-  document.getElementById("at_rt_x").style.visibility = "hidden"
-  document.getElementById("at_rt_y").style.visibility = "hidden"
-  document.getElementById("at_rt_z").style.visibility = "hidden"
-  document.getElementById("at_tr_x").style.visibility = "visible"
-  document.getElementById("at_tr_y").style.visibility = "visible"
-  document.getElementById("at_tr_z").style.visibility = "visible"
+    // Update buttons with "byp" class
+    const bypButtons = document.querySelectorAll(".byp");
+    for (let i = 1; i < 4; i++) {
+      bypButtons[i].className = "button byp";
+      bypButtons[i].innerHTML = "Enable";
+    }
+    for (let i = 4; i < 7; i++) {
+      bypButtons[i].className = "button_up byp";
+      bypButtons[i].innerHTML = "Bypass";
+    }
+  }
+  
 
-  fst_byp = document.getElementsByClassName("byp")
-  for (let i = 0; i < 3; i++) {
-    fst_byp.item(i).className = "button_up byp"
-  }
-  lst_byp = document.getElementsByClassName("byp")
-  for (let i = 3; i < 6; i++) {
-    fst_byp.item(i).className = "button byp"
-  }
-}
+function xyzMode() {
+  document.getElementById("rt_x").parentElement.style.visibility = "hidden"
+  document.getElementById("rt_y").parentElement.style.visibility = "hidden"
+  document.getElementById("rt_z").parentElement.style.visibility = "hidden"
+  document.getElementById("tr_x").parentElement.style.visibility = "visible"
+  document.getElementById("tr_y").parentElement.style.visibility = "visible"
+  document.getElementById("tr_z").parentElement.style.visibility = "visible"
+  document.getElementById("at_rt_x").parentElement.style.visibility = "hidden"
+  document.getElementById("at_rt_y").parentElement.style.visibility = "hidden"
+  document.getElementById("at_rt_z").parentElement.style.visibility = "hidden"
+  document.getElementById("at_tr_x").parentElement.style.visibility = "visible"
+  document.getElementById("at_tr_y").parentElement.style.visibility = "visible"
+  document.getElementById("at_tr_z").parentElement.style.visibility = "visible"
 
-function customMode(event) {
-  document.getElementById("btn1").className = "button"
-  document.getElementById("btn2").className = "button"
-  document.getElementById("btn3").className = "button_up"
-  document.getElementById("rt_x").style.visibility = "visible"
-  document.getElementById("rt_y").style.visibility = "visible"
-  document.getElementById("rt_z").style.visibility = "visible"
-  document.getElementById("tr_x").style.visibility = "visible"
-  document.getElementById("tr_y").style.visibility = "visible"
-  document.getElementById("tr_z").style.visibility = "visible"
-  document.getElementById("at_rt_x").style.visibility = "visible"
-  document.getElementById("at_rt_y").style.visibility = "visible"
-  document.getElementById("at_rt_z").style.visibility = "visible"
-  document.getElementById("at_tr_x").style.visibility = "visible"
-  document.getElementById("at_tr_y").style.visibility = "visible"
-  document.getElementById("at_tr_z").style.visibility = "visible"
-  byp = document.getElementsByClassName("byp")
-  for (let i = 0; i < byp.length; i++) {
-    byp.item(i).className = "button_up byp"
+    // Update buttons with "byp" class
+    const bypButtons = document.querySelectorAll(".byp");
+    for (let i = 1; i < 4; i++) {
+      bypButtons[i].className = "button_up byp";
+      bypButtons[i].innerHTML = "Bypass";
+    }
+    for (let i = 4; i < 7; i++) {
+      bypButtons[i].className = "button byp";
+      bypButtons[i].innerHTML = "Enable";
+    }
   }
-}
+  
+
+function customMode() {
+  document.getElementById("rt_x").parentElement.style.visibility = "visible"
+  document.getElementById("rt_y").parentElement.style.visibility = "visible"
+  document.getElementById("rt_z").parentElement.style.visibility = "visible"
+  document.getElementById("tr_x").parentElement.style.visibility = "visible"
+  document.getElementById("tr_y").parentElement.style.visibility = "visible"
+  document.getElementById("tr_z").parentElement.style.visibility = "visible"
+  document.getElementById("at_rt_x").parentElement.style.visibility = "visible"
+  document.getElementById("at_rt_y").parentElement.style.visibility = "visible"
+  document.getElementById("at_rt_z").parentElement.style.visibility = "visible"
+  document.getElementById("at_tr_x").parentElement.style.visibility = "visible"
+  document.getElementById("at_tr_y").parentElement.style.visibility = "visible"
+  document.getElementById("at_tr_z").parentElement.style.visibility = "visible"
+   // Update buttons with "byp" class
+   const bypButtons = document.querySelectorAll(".byp");
+   for (let i = 1; i < 7; i++) {
+     bypButtons[i].className = "button_up byp";
+     bypButtons[i].innerHTML = "Bypass";
+   }
+  }
+
+
+
+//
 function byp_0(event) {
-  if (document.getElementById("byp0").className == "button_up byp") {
-    document.getElementById("byp0").className = "button byp"
-    document.getElementById("byp0").innerHTML = "enable"
+  const buttonId = event.target.id;
+  const button = document.getElementById(buttonId);
+  const indexCell = button.parentElement.previousElementSibling;
+  indexCell.style.visibility = (indexCell.style.visibility === 'hidden') ? 'visible' : 'hidden';
 
-    document.getElementById("index").style.visibility = "hidden"
+  // Toggle the innerHTML of the button between "bypass" and "enable"
+  if (button.innerHTML === "Bypass") {
+    button.innerHTML = "Enable";
+  } else {
+    button.innerHTML = "Bypass";
   }
-  else {
-    document.getElementById("byp0").className = "button_up byp"
-    document.getElementById("byp0").innerHTML = "bypass"
-
-    document.getElementById("index").style.visibility = "visible"
-  }
-}
-
-function byp_1(event) {
-  if (document.getElementById("byp1").className == "button_up byp") {
-    document.getElementById("byp1").className = "button byp"
-    document.getElementById("byp1").innerHTML = "enable"
-
-    document.getElementById("tr_x").style.visibility = "hidden"
-    document.getElementById("at_tr_x").style.visibility = "hidden"
-  }
-  else {
-    document.getElementById("byp1").className = "button_up byp"
-    document.getElementById("byp1").innerHTML = "bypass"
-
-    document.getElementById("tr_x").style.visibility = "visible"
-    document.getElementById("at_tr_x").style.visibility = "visible"
+  if (button.className === "button_up byp") {
+    button.className = "button byp";
+  } else {
+    button.className = "button_up byp";
   }
 }
-function byp_2(event) {
-  if (document.getElementById("byp2").className == "button_up byp") {
-    document.getElementById("byp2").className = "button byp"
-    document.getElementById("byp2").innerHTML = "enable"
 
-    document.getElementById("tr_y").style.visibility = "hidden"
-    document.getElementById("at_tr_y").style.visibility = "hidden"
-  }
-  else {
-    document.getElementById("byp2").className = "button_up byp"
-    document.getElementById("byp2").innerHTML = "bypass"
 
-    document.getElementById("tr_y").style.visibility = "visible"
-    document.getElementById("at_tr_y").style.visibility = "visible"
-  }
-}
-function byp_3(event) {
-  if (document.getElementById("byp3").className == "button_up byp") {
-    document.getElementById("byp3").className = "button byp"
-    document.getElementById("byp3").innerHTML = "enable"
 
-    document.getElementById("tr_z").style.visibility = "hidden"
-    document.getElementById("at_tr_z").style.visibility = "hidden"
-  }
-  else {
-    document.getElementById("byp3").className = "button_up byp"
-    document.getElementById("byp3").innerHTML = "bypass"
-
-    document.getElementById("tr_z").style.visibility = "visible"
-    document.getElementById("at_tr_z").style.visibility = "visible"
-  }
-}
-function byp_4(event) {
-  if (document.getElementById("byp4").className == "button_up byp") {
-    document.getElementById("byp4").className = "button byp"
-    document.getElementById("byp4").innerHTML = "enable"
-
-    document.getElementById("rt_x").style.visibility = "hidden"
-    document.getElementById("at_rt_x").style.visibility = "hidden"
-  }
-  else {
-    document.getElementById("byp4").className = "button_up byp"
-    document.getElementById("byp4").innerHTML = "bypass"
-
-    document.getElementById("rt_x").style.visibility = "visible"
-    document.getElementById("at_rt_x").style.visibility = "visible"
-  }
-}
-function byp_5(event) {
-  if (document.getElementById("byp5").className == "button_up byp") {
-    document.getElementById("byp5").className = "button byp"
-    document.getElementById("byp5").innerHTML = "enable"
-
-    document.getElementById("rt_y").style.visibility = "hidden"
-    document.getElementById("at_rt_y").style.visibility = "hidden"
-  }
-  else {
-    document.getElementById("byp5").className = "button_up byp"
-    document.getElementById("byp5").innerHTML = "bypass"
-
-    document.getElementById("rt_y").style.visibility = "visible"
-    document.getElementById("at_rt_y").style.visibility = "visible"
-  }
-}
-function byp_6(event) {
-  if (document.getElementById("byp6").className == "button_up byp") {
-    document.getElementById("byp6").className = "button byp"
-    document.getElementById("byp6").innerHTML = "enable"
-
-    document.getElementById("rt_z").style.visibility = "hidden"
-    document.getElementById("at_rt_z").style.visibility = "hidden"
-  }
-  else {
-    document.getElementById("byp6").className = "button_up byp"
-    document.getElementById("byp6").innerHTML = "bypass"
-
-    document.getElementById("rt_z").style.visibility = "visible"
-    document.getElementById("at_rt_z").style.visibility = "visible"
-  }
-}
 
 function showPreferences(preferencesBtn) {
   ipcRenderer.send('showPreferences');
 }
 
+/**
+ * Sends the rate change event using IPC
+ * @param {Event} event - The event triggering the rate change
+ */
 function sendRateChange(event) {
+  // Send the rate change event using IPC
   ipcRenderer.send('sendRateChange', document.getElementById("sendRate").value);
+}
+
+/**
+ * Toggle the text of a button between "enable" and "bypass" when it is clicked.
+ * @param {string} buttonId - The ID of the button to be toggled
+ */
+function toggleText(buttonId) {
+  const button = document.getElementById(buttonId);
+  if (button.innerHTML === "enable") {
+    button.innerHTML = "bypass";
+  } else {
+    button.innerHTML = "enable";
+  }
+}
+
+
+/**
+ * Toggles the visibility of the cells in the two rows above and in the same column as the cells containing buttons when their buttons with ids "byp1", "byp2", "byp3", "byp4", "byp5", "byp6" are clicked.
+ * @param {Event} event - The event object triggered by the button click
+ */
+function toggleVisibility(event) {
+  // Get the id of the clicked button and the button element
+  const buttonId = event.target.id;
+  const button = document.getElementById(buttonId);
+
+  // Toggle the innerHTML of the button between "bypass" and "enable"
+  if (button.innerHTML === "Bypass") {
+    button.innerHTML = "Enable";
+  } else {
+    button.innerHTML = "Bypass";
+  }
+  if (button.className === "button_up byp") {
+    button.className = "button byp";
+  } else {
+    button.className = "button_up byp";
+  }
+
+  // Get the table cell containing the button
+  const cell = button.parentElement;
+  const cellIndex = cell.cellIndex; // Assuming the buttons are inside table cells
+  console.log(cellIndex)
+
+  // Check if the button is inside a table cell
+  if (cellIndex !== -1) {
+    // Get the table containing the cell
+    const table = cell.closest('table');
+
+    // Get the cells in the two rows above and in the same column as the clicked button
+    const twoRowsAbove = cell.parentElement.previousElementSibling.previousElementSibling;
+    const cellTwoRowsAbove = twoRowsAbove.querySelector('td:nth-child(' + (cellIndex + 1) + ')');
+
+    const rowAbove = cell.parentElement.previousElementSibling;
+    const cellOneRowAbove = rowAbove.querySelector('td:nth-child(' + (cellIndex + 1) + ')');
+
+    // Toggle the visibility of the cells in the two rows above
+    if (cellTwoRowsAbove && cellOneRowAbove) {
+      toggleCellVisibility(cellTwoRowsAbove);
+      toggleCellVisibility(cellOneRowAbove);
+    } else {
+      console.error('Cells not found in the two rows above');
+    }
+  } else {
+    console.error('Button not found inside a table cell');
+  }
+}
+
+/**
+ * Toggles the visibility of the given cell between hidden and visible.
+ * @param {Element} cell - The cell element to toggle visibility for
+ */
+function toggleCellVisibility(cell) {
+  if (cell.style.visibility === 'hidden') {
+    cell.style.visibility = 'visible';
+  } else {
+    cell.style.visibility = 'hidden';
+  }
+}
+
+function viewlogs() {
+  let logs = document.getElementById("logging");
+  if (logs.style.visibility === "hidden") {
+    logs.style.visibility = "visible";
+    logs.style.maxHeight = "150px";
+    logger("Viewing logs...");
+  } else {
+    logs.style.visibility = "hidden";
+    logs.style.maxHeight = "1px";
+  }
+  let clearlogs = document.getElementById("clearlogs");
+  if (clearlogs.style.visibility === "hidden") {
+    clearlogs.style.visibility = "visible";
+    clearlogs.style.height = "20px";
+  } else {
+    clearlogs.style.visibility = "hidden";
+    clearlogs.style.height = "1px";
+  }
+  let deploy = document.getElementById("viewlogs");
+  if (deploy.innerHTML == "►") {
+    deploy.innerHTML = "▼";
+  } else {
+    deploy.innerHTML = "►";
+  }
+}
+
+function clearLog() {
+  document.getElementById("logging").innerHTML = '<div id="anchor"></div>';
+  logger("Logs cleared!");
 }

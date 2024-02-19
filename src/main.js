@@ -54,7 +54,8 @@ ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value, OSCse
         ]
       }
       ]
-    }, OSCserverIP, OSCserverPort)
+    }, OSCserverIP, OSCserverPort);
+    win.webContents.send("logInfo", prefix + "/" + index + attr + " = " + value)
   }
   else {
     oscCli.send({
@@ -69,7 +70,8 @@ ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value, OSCse
         ]
       }
       ]
-    }, OSCserverIP, OSCserverPort)
+    }, OSCserverIP, OSCserverPort);
+    win.webContents.send("logInfo", prefix + attr + " = " + value)
   }
 })
 
@@ -90,7 +92,7 @@ function createWindow() {
   })
   win.setMenu(null);
   win.loadFile('src/index.html')
-  //win.webContents.openDevTools({ mode: "detach" });
+  win.webContents.openDevTools({ mode: "detach" });
 
   const preferences = new ElectronPreferences({
     browserWindowOpts: {
@@ -180,32 +182,41 @@ function createWindow() {
   });
 
 
-  function logDefinition() {
-    //console.log = log.log;
-    Object.assign(console, log.functions);
-    log.transports.console.format = '{h}:{i}:{s} / {text}';
-    log.catchErrors({
-      showDialog: false,
-      onError(error) {
-        electron.dialog.showMessageBox({
-          title: 'An error occurred',
-          message: error.message,
-          detail: error.stack,
-          type: 'error',
-          buttons: ['Ignore', 'Preferences', 'Exit'],
-        })
-          .then((result) => {
-            if (result.response === 1) {
-              win.webContents.send('resolveError')
-            }
+/**
+ * Configures the logging settings and error handling.
+ */
+function logDefinition() {
+  // Reassign console methods to custom log functions
+  Object.assign(console, log.functions);
 
-            if (result.response === 2) {
-              electron.app.quit();
-            }
-          });
-      }
-    })
-  }
+  // Set the log format for the console
+  log.transports.console.format = '{h}:{i}:{s} / {text}';
+
+  // Handle errors with a dialog
+  log.catchErrors({
+    showDialog: false,
+    onError(error) {
+      // Show error dialog
+      electron.dialog.showMessageBox({
+        title: 'An error occurred',
+        message: error.message,
+        detail: error.stack,
+        type: 'error',
+        buttons: ['Ignore', 'Preferences', 'Exit'],
+      })
+        .then((result) => {
+          // Resolve error
+          if (result.response === 1) {
+            win.webContents.send('resolveError');
+          }
+          // Exit application
+          if (result.response === 2) {
+            electron.app.quit();
+          }
+        });
+    }
+  })
+}
   logDefinition();
 
   contextMenu({
@@ -240,7 +251,8 @@ function createWindow() {
           ]
         }
         ]
-      }, OSCserverIP, OSCserverPort)
+      }, OSCserverIP, OSCserverPort);
+      win.webContents.send("logInfo", prefix + "/" + index + attr, value);
     }
     else {
       oscCli.send({
@@ -255,41 +267,58 @@ function createWindow() {
           ]
         }
         ]
-      }, OSCserverIP, OSCserverPort)
+      }, OSCserverIP, OSCserverPort);
+      win.webContents.send("logInfo", prefix + attr, value);
     }
   })
 
-  function oscListening() {
-    oUDPport = preferences.value('network_settings.osc_receiver_port');
-    const oscCli = new osc.UDPPort({
-      localAddress: "0.0.0.0",
-      localPort: oUDPport,
-      metadata: true
-    })
-    oscCli.open();
-    oscCli.on("message", (oscBundle) => {
-      let oscBundleArguments = JSON.stringify((oscBundle.args[0]).value);
-      let inc_index = oscBundleArguments.match((/\d+/g));
-      if (inc_index !== undefined) {
-        win.webContents.send('incoming_index', Number(inc_index[0]))
-      }
-    });
-    oscCli.on('ready', function () {
-      win.webContents.on('did-finish-load', () => {
-        win.webContents.send('udpPortOK', (preferences.value('network_settings.osc_receiver_port')));
-      })
-    })
-    oscCli.on("error", (error) => {
+/**
+ * Listens for OSC messages on the specified port and handles incoming data
+ */
+function oscListening() {
+  // Get the OSC receiver port from preferences
+  const oUDPport = preferences.value('network_settings.osc_receiver_port');
 
-      msg = error.message;
-      win.webContents.on('did-finish-load', () => {
-        //console.log("An error occurred with OSC listening: ", error.message);
+  // Create a new OSC UDP port
+  const oscCli = new osc.UDPPort({
+    localAddress: "0.0.0.0",
+    localPort: oUDPport,
+    metadata: true
+  });
 
-        win.webContents.send('udpPortKO', msg);
-        oscCli.close()
-      });
+  // Open the OSC UDP port
+  oscCli.open();
+
+  // Handle incoming OSC messages
+  oscCli.on("message", (oscBundle) => {
+    // Extract the OSC bundle arguments and find the index
+    let oscBundleArguments = JSON.stringify((oscBundle.args[0]).value);
+    let inc_index = oscBundleArguments.match((/\d+/g));
+    if (inc_index !== undefined) {
+      // Send the incoming index to the renderer process
+      win.webContents.send('incoming_index', Number(inc_index[0]));
+    }
+  });
+
+  // When the OSC UDP port is ready
+  oscCli.on('ready', function () {
+    // When the window finishes loading, send a message indicating the UDP port is OK
+    win.webContents.on('did-finish-load', () => {
+      win.webContents.send('udpPortOK', (preferences.value('network_settings.osc_receiver_port')));
+      win.webContents.send("logInfo", "listening on OSC port : " + (preferences.value('network_settings.osc_receiver_port')));
     });
-  } oscListening()
+  });
+
+  // Handle any errors with the OSC UDP port
+  oscCli.on("error", (error) => {
+    // Send a message to the renderer process indicating the error
+    msg = error.message;
+    win.webContents.on('did-finish-load', () => {
+      win.webContents.send('udpPortKO', msg);
+      oscCli.close();
+    });
+  });
+}
 
 
 
@@ -317,32 +346,38 @@ function createWindow() {
     sendFrequency = 100/rate
   })
 
-  async function main() {
-    sm = require("./lib.js");
-    iteration = 1
-    sm.spaceMice.onData = mouse => {
-      console.clear();
-      data = JSON.stringify(mouse.mice[0], null, 2);
-      translateX = mouse.mice[0].translate.x;
-      translateY = mouse.mice[0].translate.y;
-      translateZ = mouse.mice[0].translate.z;
-      rotateX = mouse.mice[0].rotate.x;
-      rotateY = mouse.mice[0].rotate.y;
-      rotateZ = mouse.mice[0].rotate.z;
-      buttons = mouse.mice[0].buttons;
-      win.webContents.send("buttons", buttons)
+/**
+ * Main function to handle mouse data
+ */
+async function main() {
+  // Importing the required module
+  const sm = require("./lib.js");
+  // Initializing iteration counter
+  let iteration = 1;
+  
+  // Event handler for receiving mouse data
+  sm.spaceMice.onData = mouse => {
+    // Clear the console
+    console.clear();
+    // Stringify the mouse data
+    const data = JSON.stringify(mouse.mice[0], null, 2);
+    // Extracting translation and rotation values
+    const { translate, rotate, buttons } = mouse.mice[0];
+    const { x: translateX, y: translateY, z: translateZ } = translate;
+    const { x: rotateX, y: rotateY, z: rotateZ } = rotate;
+    
+    // Sending button data to the main window
+    win.webContents.send("buttons", buttons);
 
-      
-
-      if (iteration < sendFrequency) {
-        iteration = iteration + 1
-      }
-      else {
-        win.webContents.send("incoming_data", translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
-        iteration = 0
-      }
+    // Sending sensor data at a specified frequency
+    if (iteration < sendFrequency) {
+      iteration++;
+    } else {
+      win.webContents.send("incoming_data", translateX, translateY, translateZ, rotateX, rotateY, rotateZ);
+      iteration = 0;
     }
   }
+}
   main()
 
 
