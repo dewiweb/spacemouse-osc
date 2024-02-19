@@ -81,7 +81,7 @@ ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value, OSCse
 function createWindow() {
 
   let win = new BrowserWindow({
-    width: 1200,
+    width: 1400,
     height: 430,
     webPreferences: {
       nodeIntegration: true,

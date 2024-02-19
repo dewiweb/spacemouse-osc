@@ -68,6 +68,32 @@
           </tr>
           <tr>
             <td>
+              <br>
+              <label for="precision">Precision : </label>
+
+              <select name="precision" id="precision">
+                <option value="1">Max</option>
+                <option value="10">1/10</option>
+                <option value="100">1/100</option>
+                <option value="1000">1/1000</option>
+              </select>
+            </td>
+            <td colspan="2">
+              <br>
+              <label for="factor">Factor : </label>
+              <input type="number" name="factor" id="factor" value="1" step="0.1" min="0.1"/>
+            </td>
+            <td colspan="3">
+              <br>
+              <label for="sendRate">Send Rate(%) : </label>
+              <input type="number" name="sendRate" id="sendRate"  min="1" max="100" value="33" step="1" />
+              <script>
+                sendRate.addEventListener("change", sendRateChange);
+              </script>
+            </td>
+          </tr>
+          <tr>
+            <td>
               <img
                 src="./assets/translate_x.png"
                 alt=""
@@ -153,17 +179,17 @@
           </tr>
           <tr>
             <td style="visibility: hidden">
-              <input type="number" id="tr_x" name="tr_x" value="0" />
+              <input type="number" id="tr_x" name="tr_x" value="0" step="0.1"/>
             </td>
             <td style="visibility: hidden">
-              <input type="number" id="tr_y" name="tr_y" value="0" />
+              <input type="number" id="tr_y" name="tr_y" value="0" step="0.1"/>
             </td>
             <td style="visibility: hidden">
-              <input type="number" id="tr_z" name="tr_z" value="0" />
+              <input type="number" id="tr_z" name="tr_z" value="0" step="0.1"/>
             </td>
-            <td><input type="number" id="rt_x" name="rt_x" value="0" /></td>
-            <td><input type="number" id="rt_y" name="rt_y" value="0" /></td>
-            <td><input type="number" id="rt_z" name="rt_z" value="0" /></td>
+            <td><input type="number" id="rt_x" name="rt_x" value="0" step="0.1"/></td>
+            <td><input type="number" id="rt_y" name="rt_y" value="0" step="0.1"/></td>
+            <td><input type="number" id="rt_z" name="rt_z" value="0" step="0.1"/></td>
           </tr>
           <tr>
             <td>
@@ -203,32 +229,7 @@
               </script>
             </td>
           </tr>
-          <tr>
-            <td colspan="2">
-              <br>
-              <label for="precision">Precision : </label>
 
-              <select name="precision" id="precision">
-                <option value="1">Max</option>
-                <option value="10">1/10</option>
-                <option value="100">1/100</option>
-                <option value="1000">1/1000</option>
-              </select>
-            </td>
-            <td colspan="2">
-              <br>
-              <label for="factor">Factor : </label>
-              <input type="number" name="factor" id="factor" value="1" />
-            </td>
-            <td colspan="2">
-              <br>
-              <label for="sendRate">Send Rate(%) : </label>
-              <input type="number" name="sendRate" id="sendRate" value="33" />
-              <script>
-                sendRate.addEventListener("change", sendRateChange);
-              </script>
-            </td>
-          </tr>
         </table>
       </div>
     </div>

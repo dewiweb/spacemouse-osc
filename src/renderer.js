@@ -7,11 +7,57 @@ function initInputs() {
     const inputElement = event.target;
     if (inputElement.type === 'number') {
       event.preventDefault();
-      inputElement.value = parseInt(inputElement.value) + (event.deltaY > 0 ? 1 : -1);
+      
+      const step = parseFloat(inputElement.step) || 1;
+      const delta = event.deltaY > 0 ? step : -step;
+      let newValue = parseFloat(inputElement.value || 0) + delta;
+
+      if (inputElement.min !== '' && newValue < parseFloat(inputElement.min)) {
+        newValue = parseFloat(inputElement.min);
+      }
+
+      const decimals = Math.max(0, String(step).split('.')[1]?.length || 0);
+      inputElement.value = parseFloat(newValue.toFixed(decimals));
     }
   }, { passive: false });
 }
-initInputs();
+
+function initSelects() {
+  document.addEventListener('wheel', function(event) {
+    event.preventDefault(); // Prevent the default behavior of the mouse wheel
+    const selectElements = document.querySelectorAll('select'); // Get all select elements
+    selectElements.forEach(selectElement => {
+      if(selectElement === document.activeElement) {
+        if (event.deltaY < 0) {
+          // Scroll up, select the previous option
+          selectElement.selectedIndex = Math.max(selectElement.selectedIndex - 1, 0);
+        } else {
+          // Scroll down, select the next option
+          selectElement.selectedIndex = Math.min(selectElement.selectedIndex + 1, selectElement.options.length - 1);
+        }
+      }
+    });
+  }, { passive: false });
+  
+}
+
+  function resetInputValuesOnDoubleClick() {
+    // Get all input elements
+    const inputElements = document.querySelectorAll('input');
+  
+    // Add event listener to each input element
+    inputElements.forEach(input => {
+      input.addEventListener('dblclick', function() {
+        this.value = this.defaultValue; // Reset the value to its default value
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initInputs(); // Call the initInputs function to initialize input behavior
+    initSelects(); // Call the initSelects function to initialize select behavior
+    resetInputValuesOnDoubleClick(); // Call the resetInputValuesOnDoubleClick function to enable double-click reset
+  });
 
 function logDefinition() {
   console.log = log.log;
@@ -221,6 +267,7 @@ function byp_0(event) {
   const button = document.getElementById(buttonId);
   const indexCell = button.parentElement.previousElementSibling;
   indexCell.style.visibility = (indexCell.style.visibility === 'hidden') ? 'visible' : 'hidden';
+  indexCell.children[1].style.visibility = 'visible';
 
   // Toggle the innerHTML of the button between "bypass" and "enable"
   if (button.innerHTML === "Bypass") {
