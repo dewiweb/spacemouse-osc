@@ -1,6 +1,8 @@
 //import hid from "node-hid";
 hid = require("node-hid");
-
+hidDevices = hid.devices();
+console.log("list of attached HID devices :");
+hidDevices.forEach(device => {console.log("vendor :", device.manufacturer, "/ product :", device.product);});
 /**
  * Joins two 16-bit integers into a single 32-bit integer.
  * 
@@ -100,16 +102,16 @@ constructor() {
     this.buttons = (new Array(2)).fill(false);
     this.mice = [];
     this.onData = sm => { };
-    
     // Filter and initialize space mice devices
     this.devices = hid.devices().filter(dev => (dev.vendorId == 9583 | dev.vendorId == 1133) && dev.product.includes("Space")); //9583 Spacemouse, 1133 Pro, XXXX Enterprise, XXXX Wireless, XXXX Pro Wireless?
     this.devices.forEach(dev => {
         try {
+            console.log("you've got a "+dev.product+" with id "+dev.vendorId+" and path "+dev.path+"attached!");
             this.mice.push(new spaceMouse(new hid.HID(dev.path), dev))
         } catch (error) {
             // Handle device initialization errors
             // console.log(`can't open device ${dev.productId}, ${dev.product}`);
-            // console.log(error);
+             //console.log(error);
         }
     });
 
@@ -148,3 +150,4 @@ constructor() {
 }
 
 module.exports.spaceMice = new spaceMice();
+module.exports.hidDevices = hidDevices

@@ -238,6 +238,7 @@ input[type="range"] {
   flex-direction: column;
   background-color: #2e3440;
   color:  #d8dee9;
+  font-size:  10px;
 }
 
 #logging *{

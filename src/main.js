@@ -28,13 +28,9 @@ var rotateZ = 0
 //var oServerPort = 0
 var sendFrequency = 3
 const appVersion = app.getVersion()
+var oUDPport = ""; 
 
-oscCli = new osc.UDPPort({
-  localAddress: "0.0.0.0",
-  localPort: 7007,
-  metadata: true
-})
-oscCli.open()
+
 
 
 
@@ -175,7 +171,8 @@ function createWindow() {
 
   const OSCserverIP = ((preferences.value('network_settings.osc_server')).split(":"))[0];
   const OSCserverPort = Number(((preferences.value('network_settings.osc_server')).split(":"))[1]);
-
+  oUDPport = Number(((preferences.value('network_settings.osc_receiver_port'))));
+  receiveIndex = preferences.value('other_settings.osc_id[0]');
   preferences.on('save', (preferences) => {
     //console.log("preferences:", preferences);
     //console.log(`Preferences were saved.`, JSON.stringify(preferences, null, 4));
@@ -273,40 +270,55 @@ function logDefinition() {
   })
 
 /**
- * Listens for OSC messages on the specified port and handles incoming data
- */
+  * Listens for OSC messages on the specified port and handles incoming data
+  */
 function oscListening() {
-  // Get the OSC receiver port from preferences
-  const oUDPport = preferences.value('network_settings.osc_receiver_port');
+  // Check if the OSC receiver port has changed
+  let changed = "";
+  if (oUDPport != preferences.value('network_settings.osc_receiver_port')) {
+    win.webContents.send("logInfo", "OSC port " + oUDPport + " closed");
+    changed = "true";
+  } else {
+    win.webContents.send("logInfo", "OSC port " + oUDPport + " unchanged");
+    changed = "false";
+  }
+
+  // Close the existing OSC UDP port
+  oscCli.close();
+
+  // Update the OSC receiver port
+  oUDPport = preferences.value('network_settings.osc_receiver_port');
 
   // Create a new OSC UDP port
-  const oscCli = new osc.UDPPort({
+  oscCli = new osc.UDPPort({
     localAddress: "0.0.0.0",
     localPort: oUDPport,
     metadata: true
   });
 
-  // Open the OSC UDP port
+  // Open the new OSC UDP port
   oscCli.open();
 
   // Handle incoming OSC messages
   oscCli.on("message", (oscBundle) => {
-    // Extract the OSC bundle arguments and find the index
-    let oscBundleArguments = JSON.stringify((oscBundle.args[0]).value);
-    let inc_index = oscBundleArguments.match((/\d+/g));
-    if (inc_index !== undefined) {
-      // Send the incoming index to the renderer process
-      win.webContents.send('incoming_index', Number(inc_index[0]));
+    win.webContents.send("logInfo", JSON.stringify(oscBundle.address.value));
+    receiveIndex = preferences.value('other_settings.osc_id[0]');
+    if (receiveIndex == 'on') {
+      // Extract the OSC bundle arguments and find the index
+      let oscBundleArguments = JSON.stringify((oscBundle.args[0]).value);
+      let inc_index = oscBundleArguments.match((/\d+/g));
+      if (inc_index !== undefined) {
+        // Send the incoming index to the renderer process
+        win.webContents.send('incoming_index', Number(inc_index[0]));
+      }
     }
   });
 
   // When the OSC UDP port is ready
   oscCli.on('ready', function () {
-    // When the window finishes loading, send a message indicating the UDP port is OK
-    win.webContents.on('did-finish-load', () => {
-      win.webContents.send('udpPortOK', (preferences.value('network_settings.osc_receiver_port')));
-      win.webContents.send("logInfo", "listening on OSC port : " + (preferences.value('network_settings.osc_receiver_port')));
-    });
+    if (changed == "true") {
+      win.webContents.send("logInfo", "OSC port " + oUDPport + " opened");
+    }
   });
 
   // Handle any errors with the OSC UDP port
@@ -327,8 +339,29 @@ function oscListening() {
   win.autoHideMenuBar = "true"
   win.menuBarVisible = "false"
   win.webContents.on('did-finish-load', () => {
-    //console.log("appVersion :", appVersion);
+    console.log("appVersion :", appVersion);
     win.webContents.send('appVersion', app.getVersion())
+    oscCli = new osc.UDPPort({
+      localAddress: "0.0.0.0",
+      localPort: oUDPport,
+      metadata: true
+    });
+    oscCli.open();
+    oscCli.on("message", (oscBundle) => {
+      win.webContents.send("logInfo", oscBundle.address+" "+oscBundle.args[0].value);
+      receiveIndex = preferences.value('other_settings.osc_id[0]');
+      if(receiveIndex == "on"){
+      // Extract the OSC bundle arguments and find the index
+      let oscBundleArguments = JSON.stringify((oscBundle.args[0]).value);
+      let inc_index = oscBundleArguments.match((/\d+/g));
+      if (inc_index !== undefined) {
+        // Send the incoming index to the renderer process
+        win.webContents.send('incoming_index', Number(inc_index[0]));
+      }
+    }
+    });
+    oscCli.on('ready', function () {
+      win.webContents.send("logInfo", "OSC ready to listen on port " + oUDPport);});
 
   })
 
@@ -388,7 +421,6 @@ async function main() {
     if (key === 'applyButton') {
       //console.log("listening port changed!")
       win.webContents.send('udpPortOK', (preferences.value('network_settings.osc_receiver_port')));
-      oscCli.close();
       oscListening();
       oscCli.on("error", function (error) {
         msg = error.message

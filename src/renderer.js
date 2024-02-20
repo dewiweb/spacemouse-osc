@@ -22,25 +22,24 @@ function initInputs() {
   }, { passive: false });
 }
 
-function initSelects() {
-  document.addEventListener('wheel', function(event) {
-    event.preventDefault(); // Prevent the default behavior of the mouse wheel
-    const selectElements = document.querySelectorAll('select'); // Get all select elements
-    selectElements.forEach(selectElement => {
-      if(selectElement === document.activeElement) {
-        if (event.deltaY < 0) {
-          // Scroll up, select the previous option
-          selectElement.selectedIndex = Math.max(selectElement.selectedIndex - 1, 0);
-        } else {
-          // Scroll down, select the next option
-          selectElement.selectedIndex = Math.min(selectElement.selectedIndex + 1, selectElement.options.length - 1);
-        }
-      }
-    });
-  }, { passive: false });
-  
-}
-
+//function initSelects() {
+//  document.addEventListener('wheel', function(event) {
+//    event.preventDefault(); // Prevent the default behavior of the mouse wheel
+//    const selectElements = document.querySelectorAll('select'); // Get all select elements
+//    selectElements.forEach(selectElement => {
+//      if(selectElement === document.activeElement) {
+//        if (event.deltaY < 0) {
+//          // Scroll up, select the previous option
+//          selectElement.selectedIndex = Math.max(selectElement.selectedIndex - 1, 0);
+//        } else {
+//          // Scroll down, select the next option
+//          selectElement.selectedIndex = Math.min(selectElement.selectedIndex + 1, selectElement.options.length - 1);
+//        }
+//      }
+//    });
+//  }, { passive: false });
+//  
+//}
   function resetInputValuesOnDoubleClick() {
     // Get all input elements
     const inputElements = document.querySelectorAll('input');
@@ -55,7 +54,7 @@ function initSelects() {
 
   document.addEventListener('DOMContentLoaded', function() {
     initInputs(); // Call the initInputs function to initialize input behavior
-    initSelects(); // Call the initSelects function to initialize select behavior
+    //initSelects(); // Call the initSelects function to initialize select behavior
     resetInputValuesOnDoubleClick(); // Call the resetInputValuesOnDoubleClick function to enable double-click reset
   });
 
@@ -103,7 +102,7 @@ ipcRenderer.on('appVersion', function (event, appVersion) {
 })
 
 ipcRenderer.on('preferencesUpdated', (e, preferences) => {
-  //console.log('Preferences were updated', preferences);
+  console.log('Preferences were updated', preferences);
 });
 
 ipcRenderer.on('resolveError', (e) => {
@@ -119,15 +118,23 @@ ipcRenderer.on('incoming_index', (e, inc_index) => {
 ipcRenderer.on('incoming_data', (event, translateX, translateY, translateZ, rotateX, rotateY, rotateZ) => {
   //console.log(translateX, translateY, translateZ, rotateX, rotateY, rotateZ)
  
-  var precision =document.getElementById("precision").value
+  var precision = document.getElementById("precision").value
   var factor = document.getElementById("factor").value
+  if (precision !== "clear"){
     document.getElementById("tr_x").value = Math.round((Math.pow(translateX * (1), 3) * 5 * factor)*precision)/precision
     document.getElementById("tr_y").value = Math.round((Math.pow(translateY * (1), 3) * -5 * factor)*precision)/precision
     document.getElementById("tr_z").value = Math.round((Math.pow(translateZ * (1), 3) * -5 * factor)*precision)/precision
     document.getElementById("rt_x").value = Math.round((Math.pow(rotateX * (1), 3) * 5 * factor)*precision)/precision
     document.getElementById("rt_y").value = Math.round((Math.pow(rotateY * (1), 3) * -5 * factor)*precision)/precision
     document.getElementById("rt_z").value = Math.round((Math.pow(rotateZ * (1), 3) * 5 * factor)*precision)/precision
-
+  }else{
+    document.getElementById("tr_x").value = Math.pow(translateX * (1), 3) * 5 * factor
+    document.getElementById("tr_y").value = Math.pow(translateY * (1), 3) * -5 * factor
+    document.getElementById("tr_z").value = Math.pow(translateZ * (1), 3) * -5 * factor
+    document.getElementById("rt_x").value = Math.pow(rotateX * (1), 3) * 5 * factor
+    document.getElementById("rt_y").value = Math.pow(rotateY * (1), 3) * -5 * factor
+    document.getElementById("rt_z").value = Math.pow(rotateZ * (1), 3) * 5 * factor
+  }
   var index_or_not = document.getElementById("index").style.visibility
   //console.log("visibility of index value : ", index_or_not)
   var prefix = document.getElementById("prefix").value
@@ -379,7 +386,6 @@ function viewlogs() {
   if (logs.style.visibility === "hidden") {
     logs.style.visibility = "visible";
     logs.style.maxHeight = "150px";
-    logger("Viewing logs...");
   } else {
     logs.style.visibility = "hidden";
     logs.style.maxHeight = "1px";
@@ -402,5 +408,4 @@ function viewlogs() {
 
 function clearLog() {
   document.getElementById("logging").innerHTML = '<div id="anchor"></div>';
-  logger("Logs cleared!");
 }
