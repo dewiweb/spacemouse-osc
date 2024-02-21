@@ -58,8 +58,14 @@
     "linux": {
       "target": [
         {
-          "target": ["AppImage",
-          "tar.gz"],
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "armv7l"
+          ]
+        },
+        {
+          "target": "tar.gz",
           "arch": [
             "x64",
             "armv7l"
