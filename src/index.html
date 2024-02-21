@@ -1,130 +1,255 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>spacemouse-osc</title>
-  <script script type="text/javascript" src="./renderer.js"></script>
-  <link rel="stylesheet" type="text/css" href="./style.css">
-  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
-</head>
-<body>
-  <div id="menu" class="left" style="font-weight: bold; padding-left: 2%">
-    <button class="button preferencesBtn" id="preferencesBtn" onclick="prefs(this.id)">
-      &#9881;  Preferences
-    </button>
-<!--      <button class="button logBtn" id="logBtn" style="display: none;visibility: hidden;" onclick="logview(this.id)">
-      Logs
-    </button>
-  -->    </div>
-      </div>
-      <div>
-        <div class="table">
-          <table id="tableOfConnection" style="width:100%; text-align: center;">
-            <tr>
-              <td colspan="6" style="background-color: black ; font-weight: bold">Mode</td>
-            </tr>
-            <tr>
-              <td colspan="2">
-                <button class='button_up' id='btn1'>AED</button>
-                  <script>btn1.addEventListener('click', aedMode)</script>
-              </td>
-              <td colspan="2">
-                <button class="button" id="btn2">XYZ</button>
-                <script>btn2.addEventListener('click', xyzMode)</script>
-              </td>
-              <td colspan="2">
-                <button class="button" id="btn3">Custom</button>
-                <script>btn3.addEventListener('click', customMode)</script>
-              </td>
-
-            </tr>
-            <tr>
+  <head>
+    <meta charset="UTF-8" />
+    <title>spacemouse-osc</title>
+    <script script type="text/javascript" src="./renderer.js"></script>
+    <link rel="stylesheet" type="text/css" href="./style.css" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="script-src 'self' 'unsafe-inline';"
+    />
+  </head>
+  <body>
+    <div id="menu" class="left" style="font-weight: bold; padding-left: 2%">
+      <button
+        class="button preferencesBtn"
+        id="preferencesBtn"
+        onclick="showPreferences(this.id)"
+      >
+        &#9881; Preferences
+      </button>
+    </div>
+    <div>
+      <div class="table">
+        <table id="tableOfConnection" style="width: 100%; text-align: center">
+          <tr>
+            <td>
+              <br>
+              <label for="mode">Mode : </label>
+              <select name="mode" id="mode">
+                <option value="aed">AED</option>
+                <option value="xyz">XYZ</option>
+                <option value="custom">Custom</option>
+              </select>
+              <br>
+              <script>
+                mode.addEventListener("change", modeChange);
+              </script>
               
-              <td colspan="3" style="background-color: black ; font-weight: bold" title="ex: /track/ , /source/...">OSC prefix</td>
-              <td colspan="3" style="background-color: black ; font-weight: bold" title="<--buttonLeft  buttonRight-->"> index </td>
-            </tr>
-            <tr>
-              
-              <td colspan="3" ><input type="text" id="prefix" name="prefix" value="/track"></td>
-              <td colspan="3"><input type="number" id="index" name="index" value="3" min="1" step="1" style="visibility: visible;"><button class='button_up byp' id='byp0'>bypass</button>
-                <script>byp0.addEventListener('click', byp_0)</script></td>
-            </tr>
-            <tr>
-              <td><img src="./assets/translate_x.png" alt="" width="50%" height="50%"></td>
-              <td><img src="./assets/translate_z.png" alt="" width="50%" height="50%"></td>
-              <td><img src="./assets/translate_y.png" alt="" width="50%" height="50%"></td>
-              <td><img src="./assets/rotate_x.png" alt="" width="50%" height="50%"></td>
-              <td><img src="./assets/rotate_z.png" alt="" width="50%" height="50%"></td>
-              <td><img src="./assets/rotate_y.png" alt="" width="50%" height="50%"></td>
-            </tr>
-            <tr>
-              <td><input type="string" id="at_tr_x" name="at_tr_y" value="/x++" style="visibility: hidden ;"></td>
-              <td><input type="string" id="at_tr_y" name="at_tr_y" value="/y++" style="visibility: hidden ;"></td>
-              <td><input type="string" id="at_tr_z" name="at_tr_z" value="/z++" style="visibility: hidden ;"></td>
-              <td><input type="string" id="at_rt_x" name="at_rt_x" value="/elev++"></td>
-              <td><input type="string" id="at_rt_y" name="at_rt_y" value="/azim++"></td>
-              <td><input type="string" id="at_rt_z" name="at_rt_z" value="/dist++"></td>
-            </tr>
-            <tr>
-              <td><input type="number" id="tr_x" name="tr_x" value="0" style="visibility: hidden ;"></td>
-              <td><input type="number" id="tr_y" name="tr_y" value="0" style="visibility: hidden ;"></td>
-              <td><input type="number" id="tr_z" name="tr_z" value="0" style="visibility: hidden ;"></td>
-              <td><input type="number" id="rt_x" name="rt_x" value="0"></td>
-              <td><input type="number" id="rt_y" name="rt_y" value="0"></td>
-              <td><input type="number" id="rt_z" name="rt_z" value="0"></td>
-            </tr>
-            <tr>
-              <td>
-                <button class='button byp' id='byp1'>enable</button>
-                  <script>byp1.addEventListener('click', byp_1)</script>
-              </td>
-              <td>
-                <button class='button byp' id='byp2'>enable</button>
-                  <script>byp2.addEventListener('click', byp_2)</script>
-              </td>
-              <td>
-                <button class='button byp' id='byp3'>enable</button>
-                  <script>byp3.addEventListener('click', byp_3)</script>
-              </td>
-              <td>
-                <button class='button_up byp' id='byp4'>bypass</button>
-                  <script>byp4.addEventListener('click', byp_4)</script>
-              </td>
-              <td>
-                <button class='button_up byp' id='byp5'>bypass</button>
-                  <script>byp5.addEventListener('click', byp_5)</script>
-              </td>
-              <td>
-                <button class='button_up byp' id='byp6'>bypass</button>
-                  <script>byp6.addEventListener('click', byp_6)</script>
-              </td>
-            </tr>
-            <tr>
-              <td colspan="2" >
-                <label for="precision">Precision:</label>
+            </td>
+            <td colspan="2">
+              <br>
+              <label for="prefix">Prefix : </label
+              ><input type="text" id="prefix" name="prefix" value="/track" />
+              <br>
+            </td>
+            <td colspan="2" align="right" style="visibility: visible;">
+              <br>
+              <label for="index">Index : </label
+              ><input
+                type="number"
+                id="index"
+                name="index"
+                value="1"
+                min="1"
+                step="1"
+              />
+              <br>
+            </td>
+            <td align="left">
+              <br>
+              <button class="button_up byp" id="byp0">Bypass</button>
+              <br>
+              <script>
+                byp0.addEventListener("click", byp_0);
+              </script>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <br>
+              <label for="precision">Precision : </label>
 
-<select name="precision" id="precision">
-  <option value="0">full</option>
-  <option value="10">0.1</option>
-  <option value="100">0.01</option>
-  <option value="1000">0.001</option>
-</select>
-              </td>
-              <td colspan="2" ><label for="factor">Factor:</label> <input type="number" name="factor" id="factor" value="1">
-              </td>
-              <td colspan="2" ><label for="sendRate">Send Rate:</label> <input type="number" name="sendRate" id="sendRate" value="33">
-                <script>sendRate.addEventListener('change', sendRateChange)</script>
-              </td>
+              <select name="precision" id="precision" value="clear">
+                <option value="clear">clear</option>
+                <option value="1000000">1/1000000</option>
+                <option value="1000">1/1000</option>
+                <option value="100">1/100</option>
+                <option value="10">1/10</option>
+                <option value="1">1</option>  
+              </select>
+            </td>
+            <td colspan="2">
+              <br>
+              <label for="factor">Factor : </label>
+              <input type="number" name="factor" id="factor" value="1" step="0.1" min="0.1"/>
+            </td>
+            <td colspan="3">
+              <br>
+              <label for="sendRate">Send Rate(%) : </label>
+              <input type="number" name="sendRate" id="sendRate"  min="1" max="100" value="33" step="1" />
+              <script>
+                sendRate.addEventListener("change", sendRateChange);
+              </script>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <img
+                src="./assets/translate_x.png"
+                alt=""
+                width="50%"
+                height="50%"
+              />
+            </td>
+            <td>
+              <img
+                src="./assets/translate_z.png"
+                alt=""
+                width="50%"
+                height="50%"
+              />
+            </td>
+            <td>
+              <img
+                src="./assets/translate_y.png"
+                alt=""
+                width="50%"
+                height="50%"
+              />
+            </td>
+            <td>
+              <img
+                src="./assets/rotate_x.png"
+                alt=""
+                width="50%"
+                height="50%"
+              />
+            </td>
+            <td>
+              <img
+                src="./assets/rotate_z.png"
+                alt=""
+                width="50%"
+                height="50%"
+              />
+            </td>
+            <td>
+              <img
+                src="./assets/rotate_y.png"
+                alt=""
+                width="50%"
+                height="50%"
+              />
+            </td>
+          </tr>
+          <tr>
+            <td style="visibility: hidden">
+              <input type="text" id="at_tr_x" name="at_tr_y" value="/x++" />
+            </td>
+            <td style="visibility: hidden">
+              <input type="text" id="at_tr_y" name="at_tr_y" value="/y++" />
+            </td>
+            <td style="visibility: hidden">
+              <input type="text" id="at_tr_z" name="at_tr_z" value="/z++" />
+            </td>
+            <td style="visibility: visible">
+              <input type="text" id="at_rt_x" name="at_rt_x" value="/elev++"/>
+            </td>
+            <td style="visibility: visible">
+              <input type="text" id="at_rt_y" name="at_rt_y" value="/azim++"/>
+            </td>
+            <td style="visibility: visible">
+              <input type="text" id="at_rt_z" name="at_rt_z" value="/dist++"/>
+            </td>
+          </tr>
+          <tr>
+            <td style="visibility: hidden">
+              <input type="number" id="tr_x" name="tr_x" value="0" step="0.1"/>
+            </td>
+            <td style="visibility: hidden">
+              <input type="number" id="tr_y" name="tr_y" value="0" step="0.1"/>
+            </td>
+            <td style="visibility: hidden">
+              <input type="number" id="tr_z" name="tr_z" value="0" step="0.1"/>
+            </td>
+            <td style="visibility: visible"><input type="number" id="rt_x" name="rt_x" value="0" step="0.1"/></td>
+            <td style="visibility: visible"><input type="number" id="rt_y" name="rt_y" value="0" step="0.1"/></td>
+            <td style="visibility: visible"><input type="number" id="rt_z" name="rt_z" value="0" step="0.1"/></td>
+          </tr>
+          <tr>
+            <td>
+              <button class="button byp" id="byp1">Enable</button>
+              <script>
+                byp1.addEventListener("click", toggleVisibility);
+              </script>
+            </td>
+            <td>
+              <button class="button byp" id="byp2">Enable</button>
+              <script>
+                byp2.addEventListener("click", toggleVisibility);
+              </script>
+            </td>
+            <td>
+              <button class="button byp" id="byp3">Enable</button>
+              <script>
+                byp3.addEventListener("click", toggleVisibility);
+              </script>
+            </td>
+            <td>
+              <button class="button_up byp" id="byp4">Bypass</button>
+              <script>
+                byp4.addEventListener("click", toggleVisibility);
+              </script>
+            </td>
+            <td>
+              <button class="button_up byp" id="byp5">Bypass</button>
+              <script>
+                byp5.addEventListener("click", toggleVisibility);
+              </script>
+            </td>
+            <td>
+              <button class="button_up byp" id="byp6">Bypass</button>
+              <script>
+                byp6.addEventListener("click", toggleVisibility);
+              </script>
+            </td>
+          </tr>
 
-            </tr>            
-          </table>
-        </div>
+        </table>
       </div>
-
-</body>
-<footer class="little" style="display:inline-block;">
-  <p>
-    <span style="position: absolute; right:10px;" id="appVersion">Version : </span>
-  </p>
-</footer>
+    </div>
+    <div
+      style="width: 100%; height: 20px; text-align: center; font-weight: bold;"
+    >
+      LOGS <button id="viewlogs" onclick="viewlogs()">►</button>
+    </div>
+    <div
+      id="logging"
+      style="
+        background-color: black;
+        visibility: hidden;
+        border: solid #47496c;
+        border-radius: 10px;
+      "
+    >
+      <div id="anchor"></div>
+    </div>
+    <div id="clearlogs" style="width: 100%; height: 1px; visibility: hidden;">
+      <button
+        style="position: absolute; left: 50%; margin-left: -20px;"
+        onclick="clearLog()"
+      >
+        Clear Logs!
+      </button>
+    </div>
+  </body>
+  <footer class="little" style="display: inline-block">
+    <p>
+      <span style="position: absolute; right: 10px" id="appVersion"
+        >Version :
+      </span>
+    </p>
+  </footer>
 </html>

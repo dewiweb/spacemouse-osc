@@ -1,189 +1,191 @@
-/*Scrollbar*/
+/* Nord Theme Scrollbar */
 
-::-webkit-scrollbar {									/* Scrollbars */
-	width: .875em;
-	height: .875em;
-	background: #282C34;
+::-webkit-scrollbar {
+  width: .875em;
+  height: .875em;
+  background: #2E3440;  /* Nord background color */
+}
+
+::-webkit-scrollbar-track-piece {
+  background: transparent none;
+  border: solid .25em transparent;
+  border-right-width: .5em;
+  margin: .25em;
+  box-shadow: inset .0625em .0625em 0 0 #4C566A, inset -.0625em -.0625em 0 0 #D8DEE9;  /* Nord shadow colors */
+}
+
+::-webkit-scrollbar-thumb {
+  border: solid 0 transparent;
+  border-right-width: .25em;
+  border-radius: .3125em;
+  box-shadow: inset 0 0 0 .0625em #5E81AC, inset 0 0 0 .375em #81A1C1;  /* Nord thumb colors */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  box-shadow: inset 0 0 0 .0625em #88C0D0, inset 0 0 0 .375em #8FBCBB;  /* Nord thumb hover colors */
+}
+
+::-webkit-scrollbar-corner {
+  background: #E5E9F0;  /* Nord corner color */
 }
 
 
-
-::-webkit-scrollbar-track-piece {						/* Fond */
-	background: transparent none;
-	border: solid .25em transparent;
-	border-right-width: .5em;
-	margin: .25em;
-	box-shadow: inset .0625em .0625em 0 0 rgb(137,131,117), inset -.0625em -.0625em 0 0 rgb(224,220,210);
-}
-::-webkit-scrollbar-thumb {								/* Barre */
-	border: solid 0 transparent;
-	border-right-width: .25em;
-	border-radius: .3125em;
-	box-shadow: inset 0 0 0 .0625em rgb(79,79,79), inset 0 0 0 .375em rgb(102,102,102);
-}
-::-webkit-scrollbar-thumb:hover {						/* Barre */
-  box-shadow: inset 0 0 0 .0625em rgb(90,90,90), inset 0 0 0 .375em rgb(110,110,110);
-}
-
-::-webkit-scrollbar-corner {							/* Coin de la fenêtre */
-	background: #bfb6a3 ;
-}
-
-/*---------------------*/
-
+/* Nord Theme Dark Mode */
 
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #282C34;
-    color: #ccc;
-    font-family: Arial, Helvetica, sans-serif;
+    background-color: #2E3440;  /* Nord background color */
+    color: #E5E9F0;  /* Nord text color */
+    /*font-family: Arial, Helvetica, sans-serif;*/
+    font-family: 'Fira Code', monospace;
   }
 
-div{
-  position: relative;
-}
-
- label {
-  font-weight: bold;
-  padding-left: 3%;
+  div {
+    position: relative;
   }
-  
-.button{
-  background-color: #18575f;
-  border-radius: 10px;
-  border-style: none;
-  color: rgb(255, 255, 255);
-  font-weight: bold;
+
+  label {
+    font-weight: bold;
+    padding-left: 3%;
+  }
+
+  .button {
+    background-color: #5E81AC;  /* Nord button color */
+    border-radius: 10px;
+    border-style: none;
+    color: #E5E9F0;  /* Nord text color */
+    font-weight: bold;
+  }
+
+  .button_up {
+    background-color: #8FBCBB;  /* Nord button color */
+    border-radius: 10px;
+    border-style: none;
+    font-weight: bold;
+  }
+
+  .infoDot {
+    font-weight: bold;
+    font-size: 500%;
+    color: #D08770;  /* Nord accent color */
+  }
+
+  button {
+    background-color: #8FBCBB;  /* Nord button color */
+    border-radius: 10px;
+    border-style: none;
+    font-weight: bold;
+  }
+
+  input {
+    text-align: center;
+  }
+
+  input[type=text],
+  input[type=number],
+  select {
+    border-radius: 10px;
+    border-style: none;
+    -webkit-border-radius: 10px;
+    appearance: textfield;
+  }
+
+  .form {
+    border: solid #4C566A;  /* Nord border color */
+    padding: 0.001px;
+  }
+
+
+  table {
+    border-collapse: collapse;
+  }
+
+  table,
+  th,
+  td {
+    border: 1px solid #4C566A;  /* Nord border color */
+  }
+
+  td{
+    vertical-align: middle;
+    padding-bottom: 5px;
+  }
+
+  .hiddenTd {
+    visibility: hidden;
+  }
+
+  .little {
+    font-size: x-small;
+  }
+
+  #add1,
+  #add2,
+  #add3 {
+    color: #E5E9F0;  /* Nord text color */
+    font-style: italic;
+    font-size: smaller;
+  }
+
+  #oscAddr,
+  #manualEmberPath {
+    padding-left: 10%;
+    min-width: 60%;
+  }
+
+  caption {
+    font-weight: bold;
+    background-color: #2E3440;  /* Nord background color */
+  }
 }
 
-.button_up{
-  background-color: #B0E0E6;
-  border-radius: 10px;
-  border-style: none;
-  font-weight: bold;
-}
+/* Nord Theme Slider Checkboxes and Menu */
 
-.infoDot{
-  font-weight: bold;
-  font-size: 500%;
-  color: orange;
-}
-
-button{
-  background-color: #B0E0E6;
-  border-radius: 10px;
-  border-style: none;
-  font-weight: bold;
-}
-
-input {
-  text-align:center; }
-
-input[type=text], input[type=number], select{
-  border-radius: 10px;
-  border-style: none;
-  -webkit-border-radius: 10px;
-  appearance: textfield;
-}
-
-.form {
-  border: solid #47496c;
-  padding: 0.001px;
-}
-
-.table{
-    border: solid #47496c;
-}
-
-table{
-  border-collapse: collapse;
-}
-
-table, th, td {
-  border: 1px solid black;
-}
-.hiddenTd{
-  visibility: hidden;
-}
-.little{
-  font-size: x-small;
-}
-
-#add1,#add2,#add3{
-  color: #ccc;
-  font-style: italic;
-  font-size: smaller;
-}
-
-#oscAddr, #manualEmberPath {
-  padding-left: 10%;
-  min-width: 60%;
-}
-
-caption{
-  font-weight: bold;
-  background-color: black;
-}
-
-/*slider-checkboxes*/
-
-#switcher{
-/* top: 25%;*/
-  left: 3%; 
+/* Slider Checkboxes */
+#switcher,
+#switcher1 {
+  left: 3%;
   width: 40px;
   height: 20px;
 }
 
-#switcher1{
-  /* top: 25%;*/
-  left: 3%; 
-  width: 40px;
-  height: 20px;
-}
-
-.toggle{
+.toggle {
   position: absolute;
-  border: 2px solid #444249;
+  border: 2px solid #4C566A;  /* Nord border color */
   border-radius: 20px;
-  -webkit-transition: border-color .6s  ease-out;
-  transition: border-color .6s  ease-out;
+  transition: border-color 0.6s ease-out;
   box-sizing: border-box;
 }
 
-.toggle.toggle-on{
-  border-color: rgba(137, 194, 217, .4);
-  -webkit-transition: all .5s .15s ease-out;
-  transition: all .5s .15s ease-out;
+.toggle.toggle-on {
+  border-color: rgba(137, 194, 217, 0.4);  /* Nord accent color */
+  transition: all 0.5s 0.15s ease-out;
 }
 
-.toggle-button{
+.toggle-button {
   position: absolute;
   top: 3px;
   width: 10px;
   bottom: 3px;
   right: 20px;
-  background-color: #444249;
-  border-radius: 50%; 
+  background-color: #4C566A;  /* Nord border color */
+  border-radius: 50%;
   cursor: pointer;
-  -webkit-transition: all .3s .1s, width .1s, top .1s, bottom .1s;
-  transition: all .3s .1s, width .1s, top .1s, bottom .1s;
+  transition: all 0.3s 0.1s, width 0.1s, top 0.1s, bottom 0.1s;
 }
 
-.toggle-on .toggle-button{
+.toggle-on .toggle-button {
   top: 3px;
   width: 30px;
   bottom: 3px;
   right: 3px;
   border-radius: 23px;
-  background-color: #89c2da;
-  box-shadow: 0 0 16px #4b7a8d;
-  -webkit-transition: all .2s .1s, right .1s;
-  transition: all .2s .1s, right .1s;
+  background-color: #8FBCBB;  /* Nord button color */
+  box-shadow: 0 0 16px #4B7A8D;  /* Nord accent color */
+  transition: all 0.2s 0.1s, right 0.1s;
 }
 
-
-/* used for streak effect */
-.glow-comp{
+.glow-comp {
   position: absolute;
   opacity: 0;
   top: 10px;
@@ -191,30 +193,24 @@ caption{
   left: 10px;
   right: 10px;
   border-radius: 6px;
-  background-color: rgba(75, 122, 141, .1);
-  box-shadow: 0 0 12px rgba(75, 122, 141, .2);
-  -webkit-transition: opacity 4.5s 1s;
+  background-color: rgba(75, 122, 141, 0.1);  /* Nord accent color */
+  box-shadow: 0 0 12px rgba(75, 122, 141, 0.2);  /* Nord accent color */
   transition: opacity 4.5s 1s;
 }
 
-.toggle-on .glow-comp{
+.toggle-on .glow-comp {
   opacity: 1;
-  -webkit-transition: opacity 1s;
   transition: opacity 1s;
 }
 
-/*Menu*/
+/* Menu */
 #menu {
-  background-color: rgb(40, 44, 52);
+  background-color: #2E3440;  /* Nord background color */
   border-radius: 10px;
-  /* width: 50%;*/
-  left: 0;
   display: flex;
   flex-direction: row;
   width: fit-content;
   height: fit-content;
-  
-  
 }
 
 #menu .button {
@@ -223,13 +219,43 @@ caption{
 }
 
 datalist {
-
+  /* Add Nord theme styles for datalist if applicable */
 }
 
 option {
+  /* Add Nord theme styles for options if applicable */
 }
 
 input[type="range"] {
+  /* Add Nord theme styles for range input if applicable */
   width: 200px;
   margin: 0;
+}
+
+#logging {
+  max-height: 1px;
+  overflow: auto;
+  flex-direction: column;
+  background-color: #2e3440;
+  color:  #d8dee9;
+  font-size:  10px;
+}
+
+#logging *{
+  overflow-anchor: none;
+}
+
+#anchor {
+  display: flex;
+  overflow-anchor: auto;
+  height: 1px;
+}
+
+.message {
+  padding: 0.5em;
+  border-radius: 1em;
+  margin: 0.5em;
+  line-height: 1.1em;
+  background-color: #3b4252;
+  color: #d8dee9;
 }

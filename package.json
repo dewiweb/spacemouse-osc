@@ -4,7 +4,7 @@
     "name": "dewiweb",
     "email": "dewiweb@gmail.com"
   },
-  "version": "2.0.0-alpha.8",
+  "version": "2.0.0-alpha.9",
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
@@ -23,7 +23,7 @@
     "electron-context-menu": "^3.3.0",
     "electron-log": "^4.4.8",
     "electron-preferences": "^2.7.0",
-    "node-hid": "^2.1.1",
+    "node-hid": "^3.0.0",
     "osc": "^2.4.3"
   },
   "build": {
@@ -61,6 +61,12 @@
           "target": "AppImage",
           "arch": [
             "x64"
+          ]
+        },
+        {
+          "target": "tar.gz",
+          "arch": [
+            "armv7l"
           ]
         }
       ]
