@@ -135,22 +135,25 @@ ipcRenderer.on('incoming_data', (event, translateX, translateY, translateZ, rota
     document.getElementById("rt_y").value = Math.pow(rotateY * (1), 3) * -5 * factor
     document.getElementById("rt_z").value = Math.pow(rotateZ * (1), 3) * 5 * factor
   }
-  var index_or_not = document.getElementById("index").style.visibility
+  var index_or_not = document.getElementById("index").parentElement.style.visibility
   //console.log("visibility of index value : ", index_or_not)
-  var prefix = document.getElementById("prefix").value
-  var index = document.getElementById("index").value
+  var prefix = document.getElementById("prefix").value;
+  var index = document.getElementById("index").value;
+  //console.log("prefix", prefix, "index", index, "index_or_not", index_or_not);
   var table = document.getElementById("tableOfConnection")
-  ////console.log("table",table.rows[5])
-  for (i = 0; i < table.rows[5].cells.length; i++) {
+  //console.log("table.rows[3].cells.length", table.rows[3].cells.length)
+  for (i = 0; i < table.rows[3].cells.length; i++) {
     //console.log("table_row_5, cell " + i + ":", table.rows[5].cells[i])
-    var visibility = table.rows[5].cells[i].firstChild.style.visibility
-    if (visibility !== "hidden") {
+    var visible = table.rows[3].cells[i].style.visibility;
+    var attrib = table.rows[3].cells[i].firstElementChild.value;
+    //console.log("visibility",i, visible)
+    //console.log("attrib",i, attrib)
+    if (visible !== "hidden") {
       let now = Date();
-      var attr = table.rows[5].cells[i].firstChild.value
-
-      var inc_value = table.rows[6].cells[i].firstChild.value
+      var inc_value = table.rows[4].cells[i].firstElementChild.value
+      //console.log("inc_value", inc_value)
         
-        ipcRenderer.send("ok_to_send", prefix, index, index_or_not, attr, inc_value)
+        ipcRenderer.send("ok_to_send", prefix, index, index_or_not, attrib, inc_value)
     }
   }
 
@@ -310,7 +313,8 @@ function sendRateChange(event) {
  * @param {string} buttonId - The ID of the button to be toggled
  */
 function toggleText(buttonId) {
-  const button = document.getElementById(buttonId);
+  const button = document.getElementBy
+  Id(buttonId);
   if (button.innerHTML === "enable") {
     button.innerHTML = "bypass";
   } else {

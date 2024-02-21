@@ -36,40 +36,7 @@ var oUDPport = "";
 
 
 
-ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value, OSCserverIP, OSCserverPort) => {
-  if (index_or_not == "visible") {
-    oscCli.send({
-      timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
-      packets: [{
-        address: prefix + "/" + index + attr,
-        args: [
-          {
-            type: "f",
-            value: value
-          }
-        ]
-      }
-      ]
-    }, OSCserverIP, OSCserverPort);
-    win.webContents.send("logInfo", prefix + "/" + index + attr + " = " + value)
-  }
-  else {
-    oscCli.send({
-      timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
-      packets: [{
-        address: prefix + attr,
-        args: [
-          {
-            type: "f",
-            value: value
-          }
-        ]
-      }
-      ]
-    }, OSCserverIP, OSCserverPort);
-    win.webContents.send("logInfo", prefix + attr + " = " + value)
-  }
-})
+
 
 
 
@@ -234,6 +201,42 @@ function logDefinition() {
 
 
   //------//
+
+//  ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value, OSCserverIP, OSCserverPort) => {
+//    if (index_or_not == "visible") {
+//      oscCli.send({
+//        timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
+//        packets: [{
+//          address: prefix + "/" + index + attr,
+//          args: [
+//            {
+//              type: "f",
+//              value: value
+//            }
+//          ]
+//        }
+//        ]
+//      }, OSCserverIP, OSCserverPort);
+//      win.webContents.send("logInfo", prefix + "/" + index + attr + " = " + value)
+//    }
+//    else {
+//      oscCli.send({
+//        timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
+//        packets: [{
+//          address: prefix + attr,
+//          args: [
+//            {
+//              type: "f",
+//              value: value
+//            }
+//          ]
+//        }
+//        ]
+//      }, OSCserverIP, OSCserverPort);
+//      win.webContents.send("logInfo", prefix + "/+" + attr + " = " + value)
+//    }
+//  })
+
   ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value) => {
     if (index_or_not == "visible") {
       oscCli.send({
@@ -249,7 +252,7 @@ function logDefinition() {
         }
         ]
       }, OSCserverIP, OSCserverPort);
-      win.webContents.send("logInfo", prefix + "/" + index + attr, value);
+      win.webContents.send("logInfo", prefix + "/" + index + attr +"  " +value +" @ " + OSCserverIP + ":" + OSCserverPort);
     }
     else {
       oscCli.send({
@@ -265,7 +268,7 @@ function logDefinition() {
         }
         ]
       }, OSCserverIP, OSCserverPort);
-      win.webContents.send("logInfo", prefix + attr, value);
+      win.webContents.send("logInfo", prefix + attr+"  "+ value +" @ " + OSCserverIP + ":" + OSCserverPort);
     }
   })
 
