@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/dewiweb/spacemouse-osc/compare/v2.0.0-alpha.10...v2.0.0) (2024-02-21)
+
 ## [2.0.0-alpha.10](https://github.com/dewiweb/spacemouse-osc/compare/v2.0.0-alpha.8...v2.0.0-alpha.10) (2024-02-21)
 
 
