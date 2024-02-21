@@ -18,6 +18,8 @@ if (!fs.existsSync(defaultDir)) {
 const { dialog } = require('electron')
 const { webContents } = require('electron')
 const log = require('electron-log');
+const hid = require("node-hid");
+
 var translateX = 0
 var translateY = 0
 var translateZ = 0
@@ -342,7 +344,21 @@ function oscListening() {
   win.autoHideMenuBar = "true"
   win.menuBarVisible = "false"
   win.webContents.on('did-finish-load', () => {
-    console.log("appVersion :", appVersion);
+    hidDevices = hid.devices();
+  //win.webContents.send("logInfo", "list of attached HID devices :");
+  //hidDevices.forEach(device => {win.webContents.send("logInfo", "vendor :"+ device.manufacturer+ "/ product :"+ device.product);});
+  spaceMouse = hid.devices().filter(dev => (dev.vendorId == 9583 | dev.vendorId == 1133) && dev.product.includes("Space")); //9583 Spacemouse, 1133 Pro, XXXX Enterprise, XXXX Wireless, XXXX Pro Wireless?
+  if(!spaceMouse[0]){
+    win.webContents.send("logInfo", "No SpaceMouse attached yet!");
+  }
+  else{
+    win.webContents.send("logInfo", "SpaceMouse devices :");
+    spaceMouse.forEach(device => {win.webContents.send("logInfo", "vendor :"+ device.manufacturer+ "/ product :"+ device.product);});
+
+    
+  }  
+  
+  console.log("appVersion :", appVersion);
     win.webContents.send('appVersion', app.getVersion())
     oscCli = new osc.UDPPort({
       localAddress: "0.0.0.0",
@@ -417,6 +433,7 @@ async function main() {
   main()
 
 
+  
 
 
 
