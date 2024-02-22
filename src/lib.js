@@ -1,8 +1,5 @@
 //import hid from "node-hid";
 hid = require("node-hid");
-hidDevices = hid.devices();
-console.log("list of attached HID devices :");
-hidDevices.forEach(device => {console.log("vendor :", device.manufacturer, "/ product :", device.product);});
 /**
  * Joins two 16-bit integers into a single 32-bit integer.
  * 
@@ -150,4 +147,3 @@ constructor() {
 }
 
 module.exports.spaceMice = new spaceMice();
-module.exports.hidDevices = hidDevices

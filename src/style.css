@@ -38,6 +38,14 @@
     color: #E5E9F0;  /* Nord text color */
     /*font-family: Arial, Helvetica, sans-serif;*/
     font-family: 'Fira Code', monospace;
+    src: local(''),
+    url: ('../src/assets/fonts/FiraCode-VariableFont_wght.ttf') format('truetype'),
+    url: ('../src/assets/fonts/static/FiraCode-Bold.ttf') format('truetype'),
+    url: ('../src/assets/fonts/static/FiraCode-Light.ttf') format('truetype'),
+    url: ('../src/assets/fonts/static/FiraCode-Medium.ttf') format('truetype'),
+    url: ('../src/assets/fonts/static/FiraCode-Regular.ttf') format('truetype'),
+    url: ('../src/assets/fonts/static/FiraCode-SemiBold.ttf') format('truetype')
+
   }
 
   div {
