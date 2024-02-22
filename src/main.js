@@ -19,6 +19,7 @@ const { dialog } = require('electron')
 const { webContents } = require('electron')
 const log = require('electron-log');
 const hid = require("node-hid");
+const { config } = require('process');
 
 var translateX = 0
 var translateY = 0
@@ -33,7 +34,7 @@ const appVersion = app.getVersion()
 var oUDPport = ""; 
 
 
-
+console.log('app.getAppPath() : ' + app.getAppPath())
 
 
 
@@ -57,15 +58,13 @@ function createWindow() {
   })
   win.setMenu(null);
   win.loadFile('src/index.html')
-  win.webContents.openDevTools({ mode: "detach" });
+  //win.webContents.openDevTools({ mode: "detach" });
+  
 
   const preferences = new ElectronPreferences({
-    browserWindowOpts: {
-      title: 'preferences',
-      icon: `${__dirname}/assets/icons/64x64.png`
-    },
-    css: './src/style.css',
     dataStore: defaultDir + '/config.json',
+    css: './src/style.css',
+    //debug : true,
     defaults: {
       "network_settings": {
         "osc_server": "127.0.0.1:12000",
@@ -136,8 +135,15 @@ function createWindow() {
         },
       },
     ],
-    //debug:true
+    browserWindowOverrides:  {
+      title: 'Settings',
+
+      //icon: 'src/assets/icons/64x64.png',
+      width : 1400,
+      height : 430
+    },
   });
+
 
   const OSCserverIP = ((preferences.value('network_settings.osc_server')).split(":"))[0];
   const OSCserverPort = Number(((preferences.value('network_settings.osc_server')).split(":"))[1]);
