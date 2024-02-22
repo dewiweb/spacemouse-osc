@@ -8,7 +8,7 @@
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^29.0.0",
+    "electron": "^29.0.1",
     "electron-builder": "^24.12.0",
     "standard-version": "^9.5.0"
   },
@@ -20,9 +20,9 @@
     "prerelease": "standard-version --prerelease"
   },
   "dependencies": {
-    "electron-context-menu": "^3.3.0",
+    "electron-context-menu": "^3.6.1",
     "electron-log": "^4.4.8",
-    "electron-preferences": "^2.7.0",
+    "electron-preferences": "^2.8.2",
     "node-hid": "^3.0.0",
     "osc": "^2.4.4"
   },

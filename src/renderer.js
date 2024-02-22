@@ -102,7 +102,19 @@ ipcRenderer.on('appVersion', function (event, appVersion) {
 })
 
 ipcRenderer.on('preferencesUpdated', (e, preferences) => {
-  console.log('Preferences were updated', preferences);
+  ip_portRegex = /^((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9]):(6553[0-5]|655[0-2]\d|65[0-4]\d{2}|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3})$/;
+  ip_port = preferences.network_settings.osc_server;
+  //logger('ip_port : ' +preferences.network_settings.osc_server +' in regex : ' +ip_portRegex.test(ip_port))
+  if(ip_portRegex.test(ip_port)=== true){
+    //logger("matching ip:port")
+    ipcRenderer.send('matchingIpPort');
+  }else{
+    //logger("not matching ip:port")
+    ipcRenderer.send('notMatchingIpPort');
+  }
+  //logger(preferences.network_settings.osc_server);
+//
+  
 });
 
 ipcRenderer.on('resolveError', (e) => {

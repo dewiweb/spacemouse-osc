@@ -57,7 +57,7 @@ function createWindow() {
   })
   win.setMenu(null);
   win.loadFile('src/index.html')
-  //win.webContents.openDevTools({ mode: "detach" });
+  win.webContents.openDevTools({ mode: "detach" });
 
   const preferences = new ElectronPreferences({
     browserWindowOpts: {
@@ -82,6 +82,7 @@ function createWindow() {
         form: {
           groups: [
             {
+              id:'osc_settings',
               label: 'OSC settings',
               fields: [
                 {
@@ -238,6 +239,18 @@ function logDefinition() {
 //      win.webContents.send("logInfo", prefix + "/+" + attr + " = " + value)
 //    }
 //  })
+let validIpPort = true;
+ipcMain.on('matchingIpPort',(e)=> {
+  //preferences.options.sections[0].form.groups[0].fields[0].help = 'matching IP and Port'
+  //preferences.prefsWindow.reload()
+  validIpPort = true
+})
+
+ipcMain.on('notMatchingIpPort',(e)=> {
+  //preferences.options.sections[0].form.groups[0].fields[0].help = 'non-matching IP and Port'
+  //preferences.prefsWindow.reload()
+  validIpPort = false
+})
 
   ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value) => {
     if (index_or_not == "visible") {
@@ -281,10 +294,10 @@ function oscListening() {
   // Check if the OSC receiver port has changed
   let changed = "";
   if (oUDPport != preferences.value('network_settings.osc_receiver_port')) {
-    win.webContents.send("logInfo", "OSC port " + oUDPport + " closed");
+    win.webContents.send("logInfo", "OSC listening port " + oUDPport + " closed!");
     changed = "true";
   } else {
-    win.webContents.send("logInfo", "OSC port " + oUDPport + " unchanged");
+    win.webContents.send("logInfo", "OSC listening port is " + oUDPport);
     changed = "false";
   }
 
@@ -439,15 +452,29 @@ async function main() {
 
   preferences.on('click', (key) => {
     if (key === 'applyButton') {
-      //console.log("listening port changed!")
-      win.webContents.send('udpPortOK', (preferences.value('network_settings.osc_receiver_port')));
-      oscListening();
-      oscCli.on("error", function (error) {
-        msg = error.message
-        //console.log("An error occurred with OSC listening: ", error.message);
-        win.webContents.send('udpPortKO', msg)
-        win.webContents.send('resolveError')
-      });
+      console.log("apply");
+      if(validIpPort=== true){
+        win.webContents.send('udpPortOK', (preferences.value('network_settings.osc_receiver_port')));
+        win.webContents.send('logInfo', "destination server is "+OSCserverIP+":"+OSCserverPort);
+        oscListening();
+        preferences.prefsWindow.close()
+        
+        oscCli.on("error", function (error) {
+          msg = error.message
+          //console.log("An error occurred with OSC listening: ", error.message);
+          win.webContents.send('udpPortKO', msg)
+          win.webContents.send('resolveError')
+          
+          
+        });
+      }else{
+        dialog.showMessageBox(null, {
+          type: 'info',
+          title: 'Error in ip:port',
+          message: 'destination does not match a valid ip:port format (ex: 89.207.132.170:1234)',
+          buttons: ['OK']
+        });
+      }
 
       //eGet.connect()
     }
