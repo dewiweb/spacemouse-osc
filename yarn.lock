@@ -1094,7 +1094,7 @@ electron-builder@^24.12.0:
     simple-update-notifier "2.0.0"
     yargs "^17.6.2"
 
-electron-context-menu@^3.3.0:
+electron-context-menu@^3.6.1:
   version "3.6.1"
   resolved "https://registry.yarnpkg.com/electron-context-menu/-/electron-context-menu-3.6.1.tgz#42f117e15309687b22283e6f8f7a0d95a19afe84"
   integrity sha512-lcpO6tzzKUROeirhzBjdBWNqayEThmdW+2I2s6H6QMrwqTVyT3EK47jW3Nxm60KTxl5/bWfEoIruoUNn57/QkQ==
@@ -1122,7 +1122,7 @@ electron-log@^4.4.8:
   resolved "https://registry.yarnpkg.com/electron-log/-/electron-log-4.4.8.tgz#fcb9f714dbcaefb6ac7984c4683912c74730248a"
   integrity sha512-QQ4GvrXO+HkgqqEOYbi+DHL7hj5JM+nHi/j+qrN9zeeXVKy8ZABgbu4CnG+BBqDZ2+tbeq9tUC4DZfIWFU5AZA==
 
-electron-preferences@^2.7.0:
+electron-preferences@^2.8.2:
   version "2.8.2"
   resolved "https://registry.yarnpkg.com/electron-preferences/-/electron-preferences-2.8.2.tgz#41a345b790ec674bc773c51ba1002607a1e184e3"
   integrity sha512-Q+ZgwffRvrZHRNKRVWuw9qqin6DvBzwfmAjByti08j4iYzIG+5dMPd3jREg3YDLv0TkfXFgIE0LJRifu9Jw8Pg==
@@ -1149,10 +1149,10 @@ electron-publish@24.9.4:
     lazy-val "^1.0.5"
     mime "^2.5.2"
 
-electron@^29.0.0:
-  version "29.0.0"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-29.0.0.tgz#2c1d34a95fc23a5b3530aa53de6eacca89a410b1"
-  integrity sha512-HhrRC5vWb6fAbWXP3A6ABwKUO9JvYSC4E141RzWFgnDBqNiNtabfmgC8hsVeCR65RQA2MLSDgC8uP52I9zFllQ==
+electron@^29.0.1:
+  version "29.0.1"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-29.0.1.tgz#936c0623a1bbf272dea423305f074de6ac016967"
+  integrity sha512-hsQr9clm8NCAMv4uhHlXThHn52UAgrHgyz3ubBAxZIPuUcpKVDtg4HPmx4hbmHIbYICI5OyLN3Ztp7rS+Dn4Lw==
   dependencies:
     "@electron/get" "^2.0.0"
     "@types/node" "^20.9.0"
