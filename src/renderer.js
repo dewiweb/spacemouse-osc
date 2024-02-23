@@ -164,8 +164,9 @@ ipcRenderer.on('incoming_data', (event, translateX, translateY, translateZ, rota
       let now = Date();
       var inc_value = table.rows[4].cells[i].firstElementChild.value
       //console.log("inc_value", inc_value)
-        
+        if (inc_value !== 0){
         ipcRenderer.send("ok_to_send", prefix, index, index_or_not, attrib, inc_value)
+        }
     }
   }
 
