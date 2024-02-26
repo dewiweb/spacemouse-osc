@@ -2,6 +2,13 @@ const { ipcRenderer } = require('electron');
 const preferences = ipcRenderer.sendSync('getPreferences');
 const log = require('electron-log');
 
+const modeFunctions = {
+  aed: aedMode,
+  ad: adMode,
+  xyz: xyzMode,
+  xy: xyMode
+};
+
 function initInputs() {
   document.addEventListener('wheel', (event) => {
     const inputElement = event.target;
@@ -197,90 +204,93 @@ function displayForm3(event) {
   event.preventDefault();
 }
 
+
 function modeChange(event) {
   selection = event.target.value;
-  if(selection === "aed") {
-    aedMode();
-  } else if (selection === "xyz") {
-    xyzMode();
-  }else if (selection === "custom") {
-    customMode();
+  document.getElementById("mode").value = selection;
+  if (modeFunctions[selection]) {
+    modeFunctions[selection]();
   }
 }
-function aedMode() {
-  document.getElementById("tr_x").parentElement.style.visibility = "hidden"
-  document.getElementById("tr_y").parentElement.style.visibility = "hidden"
-  document.getElementById("tr_z").parentElement.style.visibility = "hidden"
-  document.getElementById("rt_x").parentElement.style.visibility = "visible"
-  document.getElementById("rt_y").parentElement.style.visibility = "visible"
-  document.getElementById("rt_z").parentElement.style.visibility = "visible"
-  document.getElementById("at_tr_x").parentElement.style.visibility = "hidden"
-  document.getElementById("at_tr_y").parentElement.style.visibility = "hidden"
-  document.getElementById("at_tr_z").parentElement.style.visibility = "hidden"
-  document.getElementById("at_rt_x").parentElement.style.visibility = "visible"
-  document.getElementById("at_rt_y").parentElement.style.visibility = "visible"
-  document.getElementById("at_rt_z").parentElement.style.visibility = "visible"
 
-    // Update buttons with "byp" class
-    const bypButtons = document.querySelectorAll(".byp");
-    for (let i = 1; i < 4; i++) {
-      bypButtons[i].className = "button byp";
-      bypButtons[i].innerHTML = "Enable";
-    }
-    for (let i = 4; i < 7; i++) {
-      bypButtons[i].className = "button_up byp";
-      bypButtons[i].innerHTML = "Bypass";
-    }
+function setVisibility(elementIds, visibility) {
+  elementIds.forEach((id) => {
+    document.getElementById(id).parentElement.style.visibility = visibility;
+  });
+}
+
+function updateButtons(bypButtons, start, end, className, text) {
+  for (let i = start; i < end; i++) {
+    bypButtons[i].className = className;
+    bypButtons[i].innerHTML = text;
   }
-  
+}
+
+function aedMode() {
+  setVisibility(["tr_x", "tr_y", "tr_z","at_tr_x", "at_tr_y", "at_tr_z"], "hidden");
+  setVisibility(["rt_x", "rt_y", "rt_z","at_rt_x", "at_rt_y", "at_rt_z"], "visible");
+
+  const bypButtons = document.querySelectorAll(".byp");
+  updateButtons(bypButtons, 1, 4, "button byp", "Enable");
+  updateButtons(bypButtons, 4, 7, "button_up byp", "Bypass");
+}
+
+function adMode() {
+  setVisibility(["tr_x", "tr_y", "tr_z", "rt_x", "at_tr_x", "at_tr_y", "at_tr_z","at_rt_x"], "hidden");
+  setVisibility(["rt_y", "rt_z", "at_rt_y", "at_rt_z"], "visible");
+
+  const bypButtons = document.querySelectorAll(".byp");
+  updateButtons(bypButtons, 1, 5, "button byp", "Enable");
+  updateButtons(bypButtons, 5, 7, "button_up byp", "Bypass");
+}
 
 function xyzMode() {
-  document.getElementById("rt_x").parentElement.style.visibility = "hidden"
-  document.getElementById("rt_y").parentElement.style.visibility = "hidden"
-  document.getElementById("rt_z").parentElement.style.visibility = "hidden"
-  document.getElementById("tr_x").parentElement.style.visibility = "visible"
-  document.getElementById("tr_y").parentElement.style.visibility = "visible"
-  document.getElementById("tr_z").parentElement.style.visibility = "visible"
-  document.getElementById("at_rt_x").parentElement.style.visibility = "hidden"
-  document.getElementById("at_rt_y").parentElement.style.visibility = "hidden"
-  document.getElementById("at_rt_z").parentElement.style.visibility = "hidden"
-  document.getElementById("at_tr_x").parentElement.style.visibility = "visible"
-  document.getElementById("at_tr_y").parentElement.style.visibility = "visible"
-  document.getElementById("at_tr_z").parentElement.style.visibility = "visible"
+  setVisibility(["rt_x", "rt_y", "rt_z","at_rt_x", "at_rt_y", "at_rt_z"], "hidden");
+  setVisibility(["tr_x", "tr_y", "tr_z","at_tr_x", "at_tr_y", "at_tr_z"], "visible");
 
-    // Update buttons with "byp" class
-    const bypButtons = document.querySelectorAll(".byp");
-    for (let i = 1; i < 4; i++) {
-      bypButtons[i].className = "button_up byp";
-      bypButtons[i].innerHTML = "Bypass";
-    }
-    for (let i = 4; i < 7; i++) {
-      bypButtons[i].className = "button byp";
-      bypButtons[i].innerHTML = "Enable";
-    }
-  }
-  
+  const bypButtons = document.querySelectorAll(".byp");
+  updateButtons(bypButtons, 1, 4, "button_up byp", "Bypass");
+  updateButtons(bypButtons, 4, 7, "button byp", "Enable");
+}
 
-function customMode() {
-  document.getElementById("rt_x").parentElement.style.visibility = "visible"
-  document.getElementById("rt_y").parentElement.style.visibility = "visible"
-  document.getElementById("rt_z").parentElement.style.visibility = "visible"
-  document.getElementById("tr_x").parentElement.style.visibility = "visible"
-  document.getElementById("tr_y").parentElement.style.visibility = "visible"
-  document.getElementById("tr_z").parentElement.style.visibility = "visible"
-  document.getElementById("at_rt_x").parentElement.style.visibility = "visible"
-  document.getElementById("at_rt_y").parentElement.style.visibility = "visible"
-  document.getElementById("at_rt_z").parentElement.style.visibility = "visible"
-  document.getElementById("at_tr_x").parentElement.style.visibility = "visible"
-  document.getElementById("at_tr_y").parentElement.style.visibility = "visible"
-  document.getElementById("at_tr_z").parentElement.style.visibility = "visible"
-   // Update buttons with "byp" class
-   const bypButtons = document.querySelectorAll(".byp");
-   for (let i = 1; i < 7; i++) {
-     bypButtons[i].className = "button_up byp";
-     bypButtons[i].innerHTML = "Bypass";
-   }
+function xyMode() {
+  setVisibility(["rt_x", "rt_y","rt_z" ,"tr_z", "at_rt_x", "at_rt_y", "at_rt_z", "at_tr_z"], "hidden");
+  setVisibility(["tr_x", "tr_y", "at_tr_x", "at_tr_y"], "visible");
+
+  const bypButtons = document.querySelectorAll(".byp");
+  updateButtons(bypButtons, 1, 4, "button_up byp", "Bypass");
+  updateButtons(bypButtons, 4, 7, "button byp", "Enable");
+  bypButtons[3].className = "button byp";
+  bypButtons[3].innerHTML = "Enable";
+}
+
+ipcRenderer.on("modeChanged", (event, mode) => {
+  if (modeFunctions[mode]) {
+    document.getElementById("mode").value = mode;
+    modeFunctions[mode]();
+  } else {
+    // Handle the case where the mode is not found
+    logger("Unknown mode:", mode);
   }
+});
+
+ipcRenderer.on("factorChanged", (event, factor) => {
+  document.getElementById("factor").value = factor;
+})
+
+ipcRenderer.on("precisionChanged", (event, precision) => {
+  document.getElementById("precision").value = precision;
+})
+
+ipcRenderer.on("sendRateChanged", (event, sendRate) => {
+  document.getElementById("sendRate").value = sendRate;
+})
+
+
+
+
+
+
 
 
 

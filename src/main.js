@@ -20,6 +20,8 @@ const { webContents } = require('electron')
 const log = require('electron-log');
 const hid = require("node-hid");
 const { config } = require('process');
+const { type } = require('os');
+
 
 var translateX = 0
 var translateY = 0
@@ -71,9 +73,68 @@ function createWindow() {
         "osc_receiver_port": "9000",
       },
       "other_settings": {
+      },
+      "app_settings": {
+        "default_mode": "aed",
+        "default_precision": "100000",
+        "default_send_rate": "33",
+        "default_factor": "1",
       }
     },
     sections: [
+      {
+        id: 'app_settings',
+        label: 'App Settings',
+        icon: 'preferences',
+        form: {
+          groups: [
+            {
+              id:'default_settings',
+              label: 'Default settings',
+              fields: [
+                {
+                  label: 'Mode :',
+                  key: 'default_mode',
+                  type: 'dropdown',
+                  options: [
+                    { label: 'AED', value: 'aed' },
+                    { label: 'AD', value: 'ad' },
+                    { label: 'XYZ', value: 'xyz' },
+                    { label: 'XY', value: 'xy' },
+                  ],
+                  help: 'AED is default',
+                },
+                {
+                  label: 'Precision :',
+                  key: 'default_precision',
+                  type: 'dropdown',
+                  options: [
+                    { label: 'Clear', value: 'clear' },
+                    { label: '1/100000', value: '100000' },
+                    { label: '1/1000', value: '1000' },
+                    { label: '1/100', value: '100' },
+                    { label: '1/10', value: '10' },
+                    { label: '1', value: '1' },
+                  ],
+                  help: 'Clear is default',
+                },
+                {
+                  label: 'Factor :',
+                  key: 'default_factor',
+                  type: 'number',
+                  help: '1 is default',
+                },
+                {
+                  label: 'Send frequency :',
+                  key: 'default_send_rate',
+                  type: 'number',
+                  help: '33(Hz) is default',
+                },
+              ],
+            },
+          ],
+        },
+      },
       {
         id: 'network_settings',
         label: 'Network Settings',
@@ -134,12 +195,33 @@ function createWindow() {
           ],
         },
       },
+      {
+        id: 'about',
+        label: 'About',
+        icon: 'info',
+        form: {
+          groups: [
+            {
+              label: '',
+              fields: [
+                {
+                  heading : "actual version :",
+                  label: 'Version :',
+                  key: 'appVersion',
+                  type: 'message',
+                  content: appVersion
+                },
+              ]
+            },
+          ],
+        },
+      },
     ],
     browserWindowOverrides:  {
       title: 'Settings',
 
       //icon: 'src/assets/icons/64x64.png',
-      width : 1400,
+      width : 800,
       height : 430
     },
   });
@@ -209,6 +291,7 @@ function logDefinition() {
   })
 
 
+  
   //------//
 
 //  ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value, OSCserverIP, OSCserverPort) => {
@@ -297,6 +380,7 @@ ipcMain.on('notMatchingIpPort',(e)=> {
   * Listens for OSC messages on the specified port and handles incoming data
   */
 function oscListening() {
+  
   // Check if the OSC receiver port has changed
   let changed = "";
   if (oUDPport != preferences.value('network_settings.osc_receiver_port')) {
@@ -308,7 +392,9 @@ function oscListening() {
   }
 
   // Close the existing OSC UDP port
+  if (!oscCli) {
   oscCli.close();
+  }
 
   // Update the OSC receiver port
   oUDPport = preferences.value('network_settings.osc_receiver_port');
@@ -323,25 +409,35 @@ function oscListening() {
   // Open the new OSC UDP port
   oscCli.open();
 
-  // Handle incoming OSC messages
-  oscCli.on("message", (oscBundle) => {
-    win.webContents.send("logInfo", JSON.stringify(oscBundle.address.value));
-    receiveIndex = preferences.value('other_settings.osc_id[0]');
-    if (receiveIndex == 'on') {
-      // Extract the OSC bundle arguments and find the index
-      let oscBundleArguments = JSON.stringify((oscBundle.args[0]).value);
-      let inc_index = oscBundleArguments.match((/\d+/g));
-      if (inc_index !== undefined) {
-        // Send the incoming index to the renderer process
-        win.webContents.send('incoming_index', Number(inc_index[0]));
-      }
-    }
-  });
+
 
   // When the OSC UDP port is ready
   oscCli.on('ready', function () {
     if (changed == "true") {
       win.webContents.send("logInfo", "OSC port " + oUDPport + " opened");
+    }
+  });
+
+  oscCli.on("message", (oscBundle) => {
+    const oscAddress = oscBundle.address;
+    const oscArgs = oscBundle.args;
+    win.webContents.send("logInfo", oscAddress+" "+oscArgs[0].value);
+    
+    if (oscAddressFunctions[oscAddress]) {
+      oscAddressFunctions[oscAddress](oscBundle.args);
+    } else {
+      receiveIndex = preferences.value('other_settings.osc_id[0]');
+    if(receiveIndex == "on"){
+    // Extract the OSC bundle arguments and find the index
+    let oscBundleArguments = JSON.stringify((oscBundle.args[0]).value);
+    let inc_index = oscBundleArguments.match((/\d+/g));
+    console.log("inc_index :", inc_index)
+    if (inc_index !== null ){
+      // Send the incoming index to the renderer process
+      win.webContents.send('incoming_index', Number(inc_index[0]));
+    }else{win.webContents.send("logInfo","No function found for OSC address:"+ oscAddress);}
+  }
+      
     }
   });
 
@@ -355,6 +451,58 @@ function oscListening() {
     });
   });
 }
+
+
+function handleMode(args) {
+  // Function implementation for handling "/mode" address
+    const modeValue = args[0].value;
+    if (modeValue === "aed"|| modeValue === "ad"|| modeValue === "xyz"|| modeValue === "xy") {
+      win.webContents.send("modeChanged", modeValue);
+    }else{
+      win.webContents.send("logInfo", "Invalid mode value: " + modeValue);
+    }
+  }
+
+  function handlePrecision(args) {
+    // Function implementation for handling "/precision" address
+    const precisionValue = args[0].value;
+    if (precisionValue === "1" || precisionValue === "10" || precisionValue === "100" || precisionValue === "1000" || precisionValue === "100000" || precisionValue === "1clear") {
+      win.webContents.send("precisionChanged", precisionValue);
+    }else{
+      win.webContents.send("logInfo", "Invalid precision value: " + precisionValue);
+    }
+    
+  }
+
+  function handleFactor(args)  {
+    // Function implementation for handling "/factor" address
+    const factorValue = args[0].value;
+    if (factorValue > 0  && factorValue < 100) {
+      win.webContents.send("factorChanged", factorValue);
+    }else{
+      win.webContents.send("logInfo", "Invalid factor value: " + factorValue);
+    }
+  }
+
+  function handleSendRate(args) {
+    // Function implementation for handling "/sendRate" address
+    const sendRateValue = args[0].value;
+    if (sendRateValue > 0  && sendRateValue < 100) {
+      win.webContents.send("sendRateChanged", sendRateValue);
+    }else{
+      win.webContents.send("logInfo", "Invalid sendRate value: " + sendRateValue);
+    }
+  }
+
+
+  const oscAddressFunctions = {
+    "/mode": handleMode,
+    "/precision": handlePrecision,
+    "/factor": handleFactor,
+    "/sendRate": handleSendRate
+  };
+  
+
 
 
 
@@ -378,6 +526,12 @@ function oscListening() {
   }  
   
   console.log("appVersion :", appVersion);
+  console.log("preferences :", preferences);
+    handleMode([{value: preferences.value('app_settings.default_mode')}]);
+    handlePrecision([{value: preferences.value('app_settings.default_precision')}]);
+    handleFactor([{value: preferences.value('app_settings.default_factor')}]);
+    handleSendRate([{value: preferences.value('app_settings.default_send_rate')}]);
+    //preferences._preferences.about.appVersion = appVersion;
     win.webContents.send('appVersion', app.getVersion())
     oscCli = new osc.UDPPort({
       localAddress: "0.0.0.0",
@@ -386,18 +540,28 @@ function oscListening() {
     });
     oscCli.open();
     oscCli.on("message", (oscBundle) => {
-      win.webContents.send("logInfo", oscBundle.address+" "+oscBundle.args[0].value);
-      receiveIndex = preferences.value('other_settings.osc_id[0]');
+      const oscAddress = oscBundle.address;
+      const oscArgs = oscBundle.args;
+      win.webContents.send("logInfo", oscAddress+" "+oscArgs[0].value);
+      
+      if (oscAddressFunctions[oscAddress]) {
+        oscAddressFunctions[oscAddress](oscBundle.args);
+      } else {
+        receiveIndex = preferences.value('other_settings.osc_id[0]');
       if(receiveIndex == "on"){
       // Extract the OSC bundle arguments and find the index
       let oscBundleArguments = JSON.stringify((oscBundle.args[0]).value);
       let inc_index = oscBundleArguments.match((/\d+/g));
-      if (inc_index !== undefined) {
+      console.log("inc_index :", inc_index)
+      if (inc_index !== null ){
         // Send the incoming index to the renderer process
         win.webContents.send('incoming_index', Number(inc_index[0]));
-      }
+      }else{win.webContents.send("logInfo","No function found for OSC address:"+ oscAddress);}
     }
+        
+      }
     });
+    
     oscCli.on('ready', function () {
       win.webContents.send("logInfo", "OSC ready to listen on port " + oUDPport);});
 
@@ -462,7 +626,7 @@ async function main() {
       if(validIpPort=== true){
         win.webContents.send('udpPortOK', (preferences.value('network_settings.osc_receiver_port')));
         win.webContents.send('logInfo', "destination server is "+OSCserverIP+":"+OSCserverPort);
-        oscListening();
+        oscListening(); 
         preferences.prefsWindow.close()
         
         oscCli.on("error", function (error) {
