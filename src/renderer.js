@@ -278,6 +278,10 @@ ipcRenderer.on("modeChanged", (event, mode) => {
   }
 });
 
+ipcRenderer.on("prefixChanged", (event, prefix) => {
+  document.getElementById("prefix").value = prefix;
+})
+
 ipcRenderer.on("indexChanged", (event, index) => {
   idButton = document.getElementById("byp0");
   const indexCell = idButton.parentElement.previousElementSibling;

@@ -76,6 +76,7 @@ function createWindow() {
       },
       "app_settings": {
         "default_mode": "aed",
+        "default_prefix": "/track",
         "default_precision": "100000",
         "default_send_rate": "33",
         "default_factor": "1",
@@ -103,6 +104,12 @@ function createWindow() {
                     { label: 'XY', value: 'xy' },
                   ],
                   help: 'AED is default',
+                },
+                {
+                  label: 'Prefix :',
+                  key: 'default_prefix',
+                  type: 'text',
+                  help: '/track is default',
                 },
                 {
                   label: 'Precision :',
@@ -463,6 +470,15 @@ function handleMode(args) {
     }
   }
 
+  function handlePrefix(args) {
+    // Function implementation for handling "/prefix" address
+    const prefixValue = args[0].value;
+    if (prefixValue.charAt(0) === "/") {
+      win.webContents.send("prefixChanged", prefixValue);
+    }else{
+      win.webContents.send("logInfo", "Invalid prefix value: " + prefixValue);
+    }
+  }
   function handleIndex(args) {
     // Function implementation for handling "/index" address
     const indexArg = args[0].value;
@@ -507,7 +523,7 @@ function handleMode(args) {
 
   const oscAddressFunctions = {
     "/mode": handleMode,
-  //  "/prefix": handlePrefix,
+    "/prefix": handlePrefix,
     "/index": handleIndex,
     "/precision": handlePrecision,
     "/factor": handleFactor,
@@ -540,6 +556,8 @@ function handleMode(args) {
   console.log("appVersion :", appVersion);
   console.log("preferences :", preferences);
     handleMode([{value: preferences.value('app_settings.default_mode')}]);
+    handlePrefix([{value: preferences.value('app_settings.default_prefix')}]);
+    //handleIndex([{value: preferences.value('app_settings.default_index')}]);
     handlePrecision([{value: preferences.value('app_settings.default_precision')}]);
     handleFactor([{value: preferences.value('app_settings.default_factor')}]);
     handleSendRate([{value: preferences.value('app_settings.default_send_rate')}]);
