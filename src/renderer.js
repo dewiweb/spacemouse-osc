@@ -1,7 +1,7 @@
 const { ipcRenderer } = require('electron');
 const preferences = ipcRenderer.sendSync('getPreferences');
 const log = require('electron-log');
-
+const _ = require('lodash');
 const modeFunctions = {
   aed: aedMode,
   ad: adMode,
@@ -170,23 +170,27 @@ ipcRenderer.on('incoming_data', (event, translateX, translateY, translateZ, rota
     if (visible !== "hidden") {
       let now = Date();
       var inc_value = table.rows[4].cells[i].firstElementChild.value
-      //console.log("inc_value", inc_value)
-        if (inc_value !== 0){
-        ipcRenderer.send("ok_to_send", prefix, index, index_or_not, attrib, inc_value)
+      console.log("inc_value", inc_value)
+        if (inc_value !== "0"){
+          ipcRenderer.send("ok_to_send", prefix, index, index_or_not, attrib, inc_value)
         }
     }
   }
 
 })
 
-ipcRenderer.on("buttons", (event, buttons) => {
+const processButtons = _.debounce((buttons) => {
   if (buttons[0] === true) {
-    document.getElementById("index").stepDown()
+    document.getElementById("index").stepDown();
   }
   if (buttons[1] === true) {
-    document.getElementById("index").stepUp()
+    document.getElementById("index").stepUp();
   }
-})
+}, 20); // 200 milliseconds debounce rate
+
+ipcRenderer.on("buttons", (event, buttons) => {
+  processButtons(buttons);
+});
 
 function displayForm3(event) {
   const add3 = document.getElementById('add3');
