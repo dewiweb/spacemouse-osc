@@ -1,7 +1,7 @@
 const { ipcRenderer } = require('electron');
 const preferences = ipcRenderer.sendSync('getPreferences');
 const log = require('electron-log');
-
+const _ = require('lodash');
 const modeFunctions = {
   aed: aedMode,
   ad: adMode,
@@ -179,14 +179,18 @@ ipcRenderer.on('incoming_data', (event, translateX, translateY, translateZ, rota
 
 })
 
-ipcRenderer.on("buttons", (event, buttons) => {
+const processButtons = _.debounce((buttons) => {
   if (buttons[0] === true) {
-    document.getElementById("index").stepDown()
+    document.getElementById("index").stepDown();
   }
   if (buttons[1] === true) {
-    document.getElementById("index").stepUp()
+    document.getElementById("index").stepUp();
   }
-})
+}, 20); // 200 milliseconds debounce rate
+
+ipcRenderer.on("buttons", (event, buttons) => {
+  processButtons(buttons);
+});
 
 function displayForm3(event) {
   const add3 = document.getElementById('add3');

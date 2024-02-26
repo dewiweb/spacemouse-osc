@@ -600,7 +600,7 @@ async function main() {
     const { translate, rotate, buttons } = mouse.mice[0];
     const { x: translateX, y: translateY, z: translateZ } = translate;
     const { x: rotateX, y: rotateY, z: rotateZ } = rotate;
-    
+    console.log("buttons : ",buttons)
     // Sending button data to the main window
     win.webContents.send("buttons", buttons);
 
