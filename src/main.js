@@ -466,7 +466,7 @@ function handleMode(args) {
   function handlePrecision(args) {
     // Function implementation for handling "/precision" address
     const precisionValue = args[0].value;
-    if (precisionValue === "1" || precisionValue === "10" || precisionValue === "100" || precisionValue === "1000" || precisionValue === "100000" || precisionValue === "1clear") {
+    if (precisionValue === "1" || precisionValue === "10" || precisionValue === "100" || precisionValue === "1000" || precisionValue === "100000" || precisionValue === "clear") {
       win.webContents.send("precisionChanged", precisionValue);
     }else{
       win.webContents.send("logInfo", "Invalid precision value: " + precisionValue);
