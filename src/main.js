@@ -463,6 +463,16 @@ function handleMode(args) {
     }
   }
 
+  function handleIndex(args) {
+    // Function implementation for handling "/index" address
+    const indexArg = args[0].value;
+    if(parseInt(indexArg) > 0 || indexArg === "on" || indexArg === "off" || indexArg === "reset") {
+      win.webContents.send("indexChanged", indexArg);
+    }else{
+      win.webContents.send("logInfo", "Invalid index value: " + indexArg);
+    }
+  }
+
   function handlePrecision(args) {
     // Function implementation for handling "/precision" address
     const precisionValue = args[0].value;
@@ -497,6 +507,8 @@ function handleMode(args) {
 
   const oscAddressFunctions = {
     "/mode": handleMode,
+  //  "/prefix": handlePrefix,
+    "/index": handleIndex,
     "/precision": handlePrecision,
     "/factor": handleFactor,
     "/sendRate": handleSendRate

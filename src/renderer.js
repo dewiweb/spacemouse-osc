@@ -278,6 +278,30 @@ ipcRenderer.on("modeChanged", (event, mode) => {
   }
 });
 
+ipcRenderer.on("indexChanged", (event, index) => {
+  idButton = document.getElementById("byp0");
+  const indexCell = idButton.parentElement.previousElementSibling;
+  indexCell.children[1].style.visibility = 'visible';
+  if (index === "on" ){
+    if (indexCell.style.visibility === 'hidden'){
+      indexCell.style.visibility = 'visible';
+      idButton.innerHTML = "Bypass";
+      idButton.className = "button_up byp";
+    };
+    }else if (index === "off"){
+      if (indexCell.style.visibility === 'visible'){
+        indexCell.style.visibility = 'hidden';
+        idButton.innerHTML = "Enable";
+        idButton.className = "button byp";
+      }
+    }else if (index === "reset"){
+      document.getElementById("index").value = 1;
+    }
+    else{
+      document.getElementById("index").value = index;
+  }
+})
+
 ipcRenderer.on("factorChanged", (event, factor) => {
   document.getElementById("factor").value = factor;
 })
