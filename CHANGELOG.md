@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.1.0-0](https://github.com/dewiweb/spacemouse-osc/compare/v2.0.0...v2.1.0-0) (2024-02-26)
+
+
+### Features
+
+* :memo: log if mouse attached ([ca24239](https://github.com/dewiweb/spacemouse-osc/commit/ca24239aa6fd6cd51ae5234dea837f369dd807cb))
+* :rocket: add default settings ([174976d](https://github.com/dewiweb/spacemouse-osc/commit/174976d51d7f6078d90008c86245647313bd8e8b))
+
+
+### Bug Fixes
+
+* :zap: send only if data !== 0 ([3522796](https://github.com/dewiweb/spacemouse-osc/commit/352279689cf3b7bf5c36253691ff4080114a4690))
+
 ## [2.0.0](https://github.com/dewiweb/spacemouse-osc/compare/v2.0.0-alpha.10...v2.0.0) (2024-02-21)
 
 ## [2.0.0-alpha.10](https://github.com/dewiweb/spacemouse-osc/compare/v2.0.0-alpha.8...v2.0.0-alpha.10) (2024-02-21)
