@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.2.0-0](https://github.com/dewiweb/spacemouse-osc/compare/v2.1.2...v2.2.0-0) (2024-02-27)
+
+
+### Features
+
+* :rocket: enable more incoming OSC messages ([2eb54a9](https://github.com/dewiweb/spacemouse-osc/commit/2eb54a9f3eb9cd0b0f1afda5d15861f70abe6c17))
+* :sparkles: add default prefix in default settings and /prefix osc address ([d476b76](https://github.com/dewiweb/spacemouse-osc/commit/d476b768a1c68caf4d6719dc9dda3b8944a4d66d))
+
+
+### Bug Fixes
+
+* :bug: little bug with incoming /precision clear message ([ab18ca7](https://github.com/dewiweb/spacemouse-osc/commit/ab18ca7c9fd7d853561c6ea72d36b5af5fe364cb))
+
 ### [2.1.2](https://github.com/dewiweb/spacemouse-osc/compare/v2.1.2-0...v2.1.2) (2024-02-26)
 
 ### [2.1.2-0](https://github.com/dewiweb/spacemouse-osc/compare/v2.1.1...v2.1.2-0) (2024-02-26)
