@@ -59,7 +59,7 @@ function createWindow() {
     icon: `${__dirname}/assets/icons/64x64.png`
   })
   win.setMenu(null);
-  win.loadFile('src/index.html')
+  win.loadFile('src/index.html');
   //win.webContents.openDevTools({ mode: "detach" });
   
 
@@ -80,6 +80,15 @@ function createWindow() {
         "default_precision": "100000",
         "default_send_rate": "33",
         "default_factor": "1",
+      },
+      "paths_sets": {
+        "aed": "[,,,elev++,azim++,dist++]",
+        "ad": "[,,,,azim++,dist++]",
+        "xyz": "[x++,y++,z++,,,]",
+        "xy": "[x++,y++,,,,]",
+        "custom1": "[x,y,z,pitch,roll,yaw]",
+        "custom2": "[,,,,,]",
+        "custom3": "[,,,,,]",
       }
     },
     sections: [
@@ -102,6 +111,9 @@ function createWindow() {
                     { label: 'AD', value: 'ad' },
                     { label: 'XYZ', value: 'xyz' },
                     { label: 'XY', value: 'xy' },
+                    { label: 'Custom1', value: 'custom1' },
+                    { label: 'Custom2', value: 'custom2' },
+                    { label: 'Custom3', value: 'custom3' },
                   ],
                   help: 'AED is default',
                 },
@@ -175,6 +187,56 @@ function createWindow() {
           ],
         },
       },
+      {
+        id: 'paths_sets',
+        label: 'Paths Settings ',
+        icon: 'preferences',
+        form: {
+          groups: [
+            {
+              label: 'SETS',
+              fields: [
+                {
+                  label: 'AED',
+                  key: 'aed',
+                  type: 'text',
+                },
+                {
+                  label: 'AD',
+                  key: 'ad',
+                  type: 'text',
+                },
+                {
+                  label: 'XYZ',
+                  key: 'xyz',
+                  type: 'text',
+                },
+                {
+                  label: 'XY',
+                  key: 'xy',
+                  type: 'text',
+                },
+                {
+                  label: 'Custom set 1',
+                  key: 'custom1',
+                  type: 'text',
+                },
+                {
+                  label: 'Custom set 2',
+                  key: 'custom2',
+                  type: 'text',
+                },
+                {
+                  label: 'Custom set 3',
+                  key: 'custom3',
+                  type: 'text',
+                }
+
+                  ],
+                  },
+                  
+    ],},
+              },
       {
         id: 'other_settings',
         label: 'Other Settings',
@@ -463,10 +525,11 @@ function oscListening() {
 function handleMode(args) {
   // Function implementation for handling "/mode" address
     const modeValue = args[0].value;
-    if (modeValue === "aed"|| modeValue === "ad"|| modeValue === "xyz"|| modeValue === "xy") {
-      win.webContents.send("modeChanged", modeValue);
+    if (modeValue === "aed"|| modeValue === "ad"|| modeValue === "xyz"|| modeValue === "xy" || modeValue ==="custom1" || modeValue ==="custom2" || modeValue ==="custom3") {
+      modeSet = preferences.value('paths_sets.' + modeValue);
+      win.webContents.send("modeChanged", modeValue, modeSet);
     }else{
-      win.webContents.send("logInfo", "Invalid mode value: " + modeValue);
+      win.webContents.send("logInfo", "Invalid mode value: " + modeValue + modeSet);
     }
   }
 
