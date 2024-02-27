@@ -103,6 +103,11 @@
     appearance: textfield;
   }
 
+  input[type=text],
+  input[type=number]{
+    width: 50%;
+  }
+
   .form {
     border: solid #4C566A;  /* Nord border color */
     padding: 0.001px;
@@ -122,6 +127,7 @@
   td{
     vertical-align: middle;
     padding-bottom: 5px;
+    width: 16.66%;
   }
 
   .hiddenTd {
