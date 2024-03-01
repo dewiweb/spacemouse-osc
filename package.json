@@ -4,7 +4,7 @@
     "name": "dewiweb",
     "email": "dewiweb@gmail.com"
   },
-  "version": "2.2.1",
+  "version": "2.2.2-0",
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
