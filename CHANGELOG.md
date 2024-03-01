@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.2.1-0](https://github.com/dewiweb/spacemouse-osc/compare/v2.2.0...v2.2.1-0) (2024-03-01)
+
+
+### Bug Fixes
+
+* :bug: repair mode selection ([7a3cf42](https://github.com/dewiweb/spacemouse-osc/commit/7a3cf42177f96b20b7bfa7713e2bd6fa34be591b))
+
 ## [2.2.0](https://github.com/dewiweb/spacemouse-osc/compare/v2.2.0-0...v2.2.0) (2024-02-27)
 
 ## [2.2.0-0](https://github.com/dewiweb/spacemouse-osc/compare/v2.1.2...v2.2.0-0) (2024-02-27)
