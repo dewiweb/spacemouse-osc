@@ -19,7 +19,7 @@ based on [https://github.com/microdee/hid.spacemouse](https://github.com/microde
 
 #  LINUX
 
-To use spacemouse-osc on linux OS you'll have to add UDEV rules. Create a ```/etc/udev/rules.d/90-3dconnexion.rules``` file(as root) containing :
+To use spacemouse-osc on linux OS you'll have to add UDEV rules. Create a [```/etc/udev/rules.d/90-3dconnexion.rules```](https://github.com/dewiweb/spacemouse-osc/blob/main/resources/udev/90-3dconnexion.rules) file(as root) containing :
 ```
     # Logitech vendor devices
 KERNEL=="hidraw*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c603", MODE="0666"
