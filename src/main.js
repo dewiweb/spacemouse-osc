@@ -519,7 +519,7 @@ function createWindow() {
           // Extract the OSC bundle arguments and find the index
           let oscBundleArguments = JSON.stringify(oscBundle.args[0].value);
           let inc_index = oscBundleArguments.match(/\d+/g);
-          console.log("inc_index :", inc_index);
+          //console.log("inc_index :", inc_index);
           if (inc_index !== null) {
             // Send the incoming index to the renderer process
             win.webContents.send("incoming_index", Number(inc_index[0]));
@@ -556,13 +556,8 @@ function createWindow() {
       modeValue === "custom2" ||
       modeValue === "custom3"
     ) {
-      modeSet = preferences.value("paths_sets." + modeValue);
-      win.webContents.send("modeChanged", modeValue, modeSet);
-    } else {
-      win.webContents.send(
-        "logInfo",
-        "Invalid mode value: " + modeValue + modeSet
-      );
+      //modeSet = preferences.value("paths_sets." + modeValue);
+      win.webContents.send("modeChanged", modeValue);
     }
   }
 
@@ -667,8 +662,8 @@ function createWindow() {
       });
     }
 
-    console.log("appVersion :", appVersion);
-    console.log("preferences :", preferences);
+    //console.log("appVersion :", appVersion);
+    //console.log("preferences :", preferences);
     handleMode([{ value: preferences.value("app_settings.default_mode") }]);
     handlePrefix([{ value: preferences.value("app_settings.default_prefix") }]);
     //handleIndex([{value: preferences.value('app_settings.default_index')}]);
@@ -700,7 +695,7 @@ function createWindow() {
           // Extract the OSC bundle arguments and find the index
           let oscBundleArguments = JSON.stringify(oscBundle.args[0].value);
           let inc_index = oscBundleArguments.match(/\d+/g);
-          console.log("inc_index :", inc_index);
+          //console.log("inc_index :", inc_index);
           if (inc_index !== null) {
             // Send the incoming index to the renderer process
             win.webContents.send("incoming_index", Number(inc_index[0]));
@@ -755,7 +750,7 @@ function createWindow() {
       const { translate, rotate, buttons } = mouse.mice[0];
       const { x: translateX, y: translateY, z: translateZ } = translate;
       const { x: rotateX, y: rotateY, z: rotateZ } = rotate;
-      console.log("buttons : ", buttons);
+      //console.log("buttons : ", buttons);
       // Sending button data to the main window
       win.webContents.send("buttons", buttons);
 
@@ -780,7 +775,7 @@ function createWindow() {
 
   preferences.on("click", (key) => {
     if (key === "applyButton") {
-      console.log("apply");
+      //console.log("apply");
       if (validIpPort === true) {
         win.webContents.send(
           "udpPortOK",

@@ -243,9 +243,17 @@ function displayForm3(event) {
 }
 
 function modeChange(event) {
-  selection = event.target.value;
-  console.log("modeChange_selection: ", selection);
-  document.getElementById("mode").value = selection;
+  mode = event.target.value;
+  if (modeFunctions[mode]) {
+    //modeSet = preferences.value('paths_sets.' + modeValue)
+    document.getElementById("mode").value = mode;
+    set = preferences.paths_sets[mode];
+    modeFunctions[mode](set);
+  } else {
+    // Handle the case where the mode is not found
+    logger("Unknown mode:", mode);
+  }
+
 }
 
 function setVisibility(elementIds, visibility) {
@@ -261,43 +269,6 @@ function updateButtons(bypButtons, start, end, className, text) {
   }
 }
 
-//function aedMode() {
-//  setVisibility(["tr_x", "tr_y", "tr_z","at_tr_x", "at_tr_y", "at_tr_z"], "hidden");
-//  setVisibility(["rt_x", "rt_y", "rt_z","at_rt_x", "at_rt_y", "at_rt_z"], "visible");
-//
-//  const bypButtons = document.querySelectorAll(".byp");
-//  updateButtons(bypButtons, 1, 4, "button byp", "Enable");
-//  updateButtons(bypButtons, 4, 7, "button_up byp", "Bypass");
-//}
-//
-//function adMode() {
-//  setVisibility(["tr_x", "tr_y", "tr_z", "rt_x", "at_tr_x", "at_tr_y", "at_tr_z","at_rt_x"], "hidden");
-//  setVisibility(["rt_y", "rt_z", "at_rt_y", "at_rt_z"], "visible");
-//
-//  const bypButtons = document.querySelectorAll(".byp");
-//  updateButtons(bypButtons, 1, 5, "button byp", "Enable");
-//  updateButtons(bypButtons, 5, 7, "button_up byp", "Bypass");
-//}
-//
-//function xyzMode() {
-//  setVisibility(["rt_x", "rt_y", "rt_z","at_rt_x", "at_rt_y", "at_rt_z"], "hidden");
-//  setVisibility(["tr_x", "tr_y", "tr_z","at_tr_x", "at_tr_y", "at_tr_z"], "visible");
-//
-//  const bypButtons = document.querySelectorAll(".byp");
-//  updateButtons(bypButtons, 1, 4, "button_up byp", "Bypass");
-//  updateButtons(bypButtons, 4, 7, "button byp", "Enable");
-//}
-//
-//function xyMode() {
-//  setVisibility(["rt_x", "rt_y","rt_z" ,"tr_z", "at_rt_x", "at_rt_y", "at_rt_z", "at_tr_z"], "hidden");
-//  setVisibility(["tr_x", "tr_y", "at_tr_x", "at_tr_y"], "visible");
-//
-//  const bypButtons = document.querySelectorAll(".byp");
-//  updateButtons(bypButtons, 1, 4, "button_up byp", "Bypass");
-//  updateButtons(bypButtons, 4, 7, "button byp", "Enable");
-//  bypButtons[3].className = "button byp";
-//  bypButtons[3].innerHTML = "Enable";
-//}
 
 function setAtVisibility(elementIds, visibility) {
   elementIds.forEach((id) => {
@@ -306,7 +277,7 @@ function setAtVisibility(elementIds, visibility) {
 }
 
 function customMode(set) {
-  console.log("line 285 - entering function customMode with set: ", set);
+  console.log("line 280 - entering function customMode with set: ", set);
   modeArray = JSON.parse(set);
   atArray = document.querySelectorAll(".at");
   valueArray = document.querySelectorAll(".value");
@@ -317,7 +288,7 @@ function customMode(set) {
     valueArray[index],
     bypArray[index + 1],
   ]);
-  console.log("quadruplet_array : ", quadrupletArray);
+  //console.log("quadruplet_array : ", quadrupletArray);
   for (i = 0; i < quadrupletArray.length; i++) {
     if (!quadrupletArray[i][0]) {
       bypArray[i + 1].className = "button byp";
@@ -334,12 +305,12 @@ function customMode(set) {
   }
 }
 
-ipcRenderer.on("modeChanged", (event, mode, set) => {
+ipcRenderer.on("modeChanged", (event, mode) => {
   if (modeFunctions[mode]) {
     //modeSet = preferences.value('paths_sets.' + modeValue)
     document.getElementById("mode").value = mode;
     set = preferences.paths_sets[mode];
-    console.log("line 341-set: ", set);
+    console.log("line 313-set: ", set);
     modeFunctions[mode](set);
   } else {
     // Handle the case where the mode is not found
