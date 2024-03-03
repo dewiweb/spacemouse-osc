@@ -59,7 +59,11 @@ function createWindow() {
         osc_server: "127.0.0.1:12000",
         osc_receiver_port: "9000",
       },
-      other_settings: {},
+      other_settings: {
+        absolute_relative: "true",
+        xyzOriginAndRange: '[[0,0,0],[-10,10]]',
+        rpyOriginAndRange: '[[0,0,0],[-180,180]]',
+      },
       app_settings: {
         default_mode: "aed",
         default_prefix: "/track",
@@ -229,7 +233,6 @@ function createWindow() {
         form: {
           groups: [
             {
-              label: "",
               fields: [
                 {
                   label: "",
@@ -242,6 +245,33 @@ function createWindow() {
                       value: "on",
                     },
                   ],
+                },
+                {
+                  label: "",
+                  key: "absolute_relative",
+                  type: "radio",
+                options: [
+                  {label: "absolute", value: false},
+                  {label: "relative", value: true}
+                ],
+                },
+                {
+                  label: '',
+                  key: 'xyzOriginAndRange',
+                  type: 'text',
+                  hideFunction: (preferences) => {
+                    return !preferences.other_settings?.absolute_relative;
+                  },
+                  help: '[[originX, originY, originZ], [rangeMin, rangeMax]] in meters',
+                },
+                {
+                  label: '',
+                  key: 'rpyOriginAndRange',
+                  type: 'text',
+                  hideFunction: (preferences) => {
+                    return !preferences.other_settings?.absolute_relative;
+                  },
+                  help: '[[originRoll, originPitch, originYaw], [rangeMin, rangeMax]] in degrees',
                 },
               ],
             },
@@ -264,11 +294,19 @@ function createWindow() {
                   type: "message",
                   content: appVersion,
                 },
+                {
+                  heading: "link to the wiki :",
+                  label: "",
+                  key: "wiki_url",
+                  type: "message",
+                  content: "<a href='https://github.com/dewiweb/spacemouse-osc/wiki' target='_blank'>https://github.com/dewiweb/spacemouse-osc/wiki</a>",
+                },
               ],
             },
           ],
         },
       },
+
     ],
     browserWindowOverrides: {
       title: "Settings",
@@ -346,42 +384,7 @@ function createWindow() {
     ],
   });
 
-  //------//
-
-  //  ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value, OSCserverIP, OSCserverPort) => {
-  //    if (index_or_not == "visible") {
-  //      oscCli.send({
-  //        timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
-  //        packets: [{
-  //          address: prefix + "/" + index + attr,
-  //          args: [
-  //            {
-  //              type: "f",
-  //              value: value
-  //            }
-  //          ]
-  //        }
-  //        ]
-  //      }, OSCserverIP, OSCserverPort);
-  //      win.webContents.send("logInfo", prefix + "/" + index + attr + " = " + value)
-  //    }
-  //    else {
-  //      oscCli.send({
-  //        timeTag: osc.timeTag(0), // Schedules this bundle 60 seconds from now.
-  //        packets: [{
-  //          address: prefix + attr,
-  //          args: [
-  //            {
-  //              type: "f",
-  //              value: value
-  //            }
-  //          ]
-  //        }
-  //        ]
-  //      }, OSCserverIP, OSCserverPort);
-  //      win.webContents.send("logInfo", prefix + "/+" + attr + " = " + value)
-  //    }
-  //  })
+  // Check if the OSC receiver port has changed
   let validIpPort = true;
   ipcMain.on("matchingIpPort", (e) => {
     //preferences.options.sections[0].form.groups[0].fields[0].help = 'matching IP and Port'

@@ -90,4 +90,43 @@ module.exports = {
     return path
   },
 
+  fromAbsoluteToRelative : function (data, prevX, prevY, prevZ, prevRoll, prevPitch, prevYaw, minXYZ, maxXYZ, minRPY, maxRPY) {
+    const [x, y, z, roll, pitch, yaw] = data.split(',');
+    
+    let relativeX = parseFloat(x) + prevX;
+    let relativeY = parseFloat(y) + prevY;
+    let relativeZ = parseFloat(z) + prevZ;
+    let relativeRoll = parseFloat(roll) + prevRoll;
+    let relativePitch = parseFloat(pitch) + prevPitch;
+    let relativeYaw = parseFloat(yaw) + prevYaw;
+    
+    if (relativeX < minXYZ || relativeX > maxXYZ) {
+      relativeX = prevX;
+    }
+    if (relativeY < minXYZ || relativeY > maxXYZ) {
+      relativeY = prevY;
+    }
+    if (relativeZ < minXYZ || relativeZ > maxXYZ) {
+      relativeZ = prevZ;
+    }
+    if (relativeRoll < minRPY || relativeRoll > maxRPY) {
+      relativeRoll = prevRoll;
+    }
+    if (relativePitch < minRPY || relativePitch > maxRPY) {
+      relativePitch = prevPitch;
+    }
+    if (relativeYaw < minRPY || relativeYaw > maxRPY) {
+      relativeYaw = prevYaw;
+    }
+    
+    prevX = relativeX;
+    prevY = relativeY;
+    prevZ = relativeZ;
+    prevRoll = relativeRoll;
+    prevPitch = relativePitch;
+    prevYaw = relativeYaw;
+    
+    return { relativeX, relativeY, relativeZ, relativeRoll, relativePitch, relativeYaw, prevX, prevY, prevZ, prevRoll, prevPitch, prevYaw };
+  }
+
 }
