@@ -90,43 +90,55 @@ module.exports = {
     return path
   },
 
-  fromAbsoluteToRelative : function (data, prevX, prevY, prevZ, prevRoll, prevPitch, prevYaw, minXYZ, maxXYZ, minRPY, maxRPY) {
+  fromAbsoluteToRelative : function (data, commonRangeXYZ, commonRangeRPY, origins) {
     const [x, y, z, roll, pitch, yaw] = data.split(',');
     
+    const [minCommonXYZ, maxCommonXYZ] = commonRangeXYZ;
+    const [minCommonRPY, maxCommonRPY] = commonRangeRPY;
+    const { prevX, prevY, prevZ, prevRoll, prevPitch, prevYaw } = origins;
+  
+    // Calculate individual ranges
+    const rangeX = [prevX - minCommonXYZ, prevX + maxCommonXYZ];
+    const rangeY = [prevY - minCommonXYZ, prevY + maxCommonXYZ];
+    const rangeZ = [prevZ - minCommonXYZ, prevZ + maxCommonXYZ];
+    const rangeRoll = [prevRoll - minCommonRPY, prevRoll + maxCommonRPY];
+    const rangePitch = [prevPitch - minCommonRPY, prevPitch + maxCommonRPY];
+    const rangeYaw = [prevYaw - minCommonRPY, prevYaw + maxCommonRPY];
+  
     let relativeX = parseFloat(x) + prevX;
     let relativeY = parseFloat(y) + prevY;
     let relativeZ = parseFloat(z) + prevZ;
     let relativeRoll = parseFloat(roll) + prevRoll;
     let relativePitch = parseFloat(pitch) + prevPitch;
     let relativeYaw = parseFloat(yaw) + prevYaw;
-    
-    if (relativeX < minXYZ || relativeX > maxXYZ) {
+  
+    if (relativeX < rangeX[0] || relativeX > rangeX[1]) {
       relativeX = prevX;
     }
-    if (relativeY < minXYZ || relativeY > maxXYZ) {
+    if (relativeY < rangeY[0] || relativeY > rangeY[1]) {
       relativeY = prevY;
     }
-    if (relativeZ < minXYZ || relativeZ > maxXYZ) {
+    if (relativeZ < rangeZ[0] || relativeZ > rangeZ[1]) {
       relativeZ = prevZ;
     }
-    if (relativeRoll < minRPY || relativeRoll > maxRPY) {
+    if (relativeRoll < rangeRoll[0] || relativeRoll > rangeRoll[1]) {
       relativeRoll = prevRoll;
     }
-    if (relativePitch < minRPY || relativePitch > maxRPY) {
+    if (relativePitch < rangePitch[0] || relativePitch > rangePitch[1]) {
       relativePitch = prevPitch;
     }
-    if (relativeYaw < minRPY || relativeYaw > maxRPY) {
+    if (relativeYaw < rangeYaw[0] || relativeYaw > rangeYaw[1]) {
       relativeYaw = prevYaw;
     }
-    
-    prevX = relativeX;
-    prevY = relativeY;
-    prevZ = relativeZ;
-    prevRoll = relativeRoll;
-    prevPitch = relativePitch;
-    prevYaw = relativeYaw;
-    
-    return { relativeX, relativeY, relativeZ, relativeRoll, relativePitch, relativeYaw, prevX, prevY, prevZ, prevRoll, prevPitch, prevYaw };
+  
+    origins.prevX = relativeX;
+    origins.prevY = relativeY;
+    origins.prevZ = relativeZ;
+    origins.prevRoll = relativeRoll;
+    origins.prevPitch = relativePitch;
+    origins.prevYaw = relativeYaw;
+  
+    return { relativeX, relativeY, relativeZ, relativeRoll, relativePitch, relativeYaw, origins };
   }
 
 }

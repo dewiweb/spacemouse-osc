@@ -247,7 +247,7 @@ function createWindow() {
                   ],
                 },
                 {
-                  label: "",
+                  label: "absolute/relative mode : ",
                   key: "absolute_relative",
                   type: "radio",
                 options: [
