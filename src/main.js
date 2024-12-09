@@ -1,12 +1,12 @@
 const electron = require('electron');
-const { app, BrowserWindow, ipcMain, dialog, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, nativeTheme, Tray, Menu, nativeImage } = require('electron');
 const ElectronPreferences = require("electron-preferences");
 const fs = require("fs");
 const log = require("electron-log");
 const path = require("path");
 const Store = require('electron-store');
-const HID = require('node-hid');
 const osc = require("osc");
+const { spaceMice } = require('./lib');
 
 // Initialize electron store with schema
 const store = new Store({
@@ -49,12 +49,10 @@ const store = new Store({
 
 // Configure logging
 log.transports.file.level = "debug";
-console.log = log.log;
 
 // Global references
 let mainWindow = null;
 let preferences = null;
-let spaceMouse = null;
 let oscCli = null;
 let device = null;
 let sendInterval = null;
@@ -64,6 +62,7 @@ let OSCserverIP = "127.0.0.1";  // Default value
 let OSCserverPort = 8000;      // Default value
 let oUDPport = 9000;  // Default value
 let validIpPort = true;
+let tray = null;
 
 // Default preferences
 const defaultPreferences = {
@@ -83,44 +82,273 @@ const defaultPreferences = {
   }
 };
 
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 400, // Base height (menu + table + padding)
-    minHeight: 400, // Minimum height to show essential elements
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      enableRemoteModule: true
+// Handle IPC events
+ipcMain.on('getPreferences', (event) => {
+  try {
+    const prefs = store.get('preferences', defaultPreferences);
+    event.returnValue = prefs;
+  } catch (error) {
+    log.error('Error getting preferences:', error);
+    event.returnValue = null;
+  }
+});
+
+ipcMain.handle('updatePreferences', async (event, prefs) => {
+  try {
+    store.set('preferences', prefs);
+    if (prefs.app_settings?.autostart !== undefined) {
+      await handleAutostart(prefs.app_settings.autostart);
     }
-  });
+    mainWindow?.webContents.send('preference-update', prefs);
+    return { success: true };
+  } catch (error) {
+    log.error('Error updating preferences:', error);
+    return { success: false, error: error.message };
+  }
+});
 
-  // Remove menu
-  mainWindow.setMenu(null);
+ipcMain.on('savePreferences', async (event, prefs) => {
+  try {
+    store.set('preferences', prefs);
+    event.reply('preferences-saved', prefs);
+  } catch (error) {
+    log.error('Error saving preferences:', error);
+    event.reply('error', error.message);
+  }
+});
 
-  // Set up window properties
-  mainWindow.autoHideMenuBar = true;
-  mainWindow.menuBarVisible = false;
+// Create application icon
+function createAppIcon() {
+  try {
+    // Create a 32x32 icon for better window icon quality
+    const image = nativeImage.createEmpty();
+    const size = { width: 32, height: 32 };
+    const imageData = Buffer.alloc(size.width * size.height * 4);
+    
+    // Create a SpaceMouse-like icon
+    for (let y = 0; y < size.height; y++) {
+      for (let x = 0; x < size.width; x++) {
+        const i = (y * size.width + x) * 4;
+        
+        // Calculate distance from center
+        const centerX = size.width / 2;
+        const centerY = size.height / 2;
+        const dx = x - centerX;
+        const dy = y - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Base shape (circular)
+        if (distance < 12) {
+          // Main body (light blue)
+          imageData[i] = 100;     // R
+          imageData[i + 1] = 180; // G
+          imageData[i + 2] = 255; // B
+          imageData[i + 3] = 255; // A
+          
+          // Add highlight
+          if (distance < 8 && x > centerX && y < centerY) {
+            imageData[i] = 150;     // R
+            imageData[i + 1] = 200; // G
+            imageData[i + 2] = 255; // B
+          }
+        } 
+        // Add knob on top
+        else if (y < 10 && x > (size.width/2 - 4) && x < (size.width/2 + 4)) {
+          imageData[i] = 80;      // R
+          imageData[i + 1] = 160; // G
+          imageData[i + 2] = 235; // B
+          imageData[i + 3] = 255; // A
+        }
+        // Transparent background
+        else {
+          imageData[i] = 0;
+          imageData[i + 1] = 0;
+          imageData[i + 2] = 0;
+          imageData[i + 3] = 0;
+        }
+      }
+    }
+    
+    image.addRepresentation({
+      width: size.width,
+      height: size.height,
+      buffer: imageData,
+      scaleFactor: 1.0
+    });
 
-  // Set up window events
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
+    // Also create 16x16 version for tray
+    const smallImage = image.resize({ width: 16, height: 16 });
 
-  // Load the index.html file
-  mainWindow.loadFile(path.join(__dirname, 'index.html')).then(() => {
-    // Initialize app after window is loaded
-    initializeApp();
+    return { icon: image, trayIcon: smallImage };
+  } catch (error) {
+    log.error('Error creating app icon:', error);
+    return null;
+  }
+}
 
-    // Apply saved theme
-    const savedTheme = store.get('preferences.app_settings.theme', 'dark');
-    mainWindow.webContents.send('update-theme', savedTheme);
-    console.log('Applied saved theme on startup:', savedTheme);
-  }).catch((error) => {
-    console.error('Error loading index.html:', error);
-  });
+function createTray() {
+  try {
+    const icons = createAppIcon();
+    if (!icons) {
+      log.error('Failed to create tray icon');
+      return;
+    }
 
-  return mainWindow;
+    // If tray already exists, destroy it first
+    if (tray) {
+      tray.destroy();
+    }
+
+    // Create new tray with the generated icon
+    tray = new Tray(icons.trayIcon);
+    
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: 'Show Window',
+        click: () => {
+          if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        }
+      },
+      {
+        label: 'Preferences',
+        click: () => {
+          if (preferences) {
+            preferences.show();
+            preferences.focus();
+          }
+        }
+      },
+      { type: 'separator' },
+      {
+        label: 'Quit',
+        click: () => {
+          app.isQuitting = true;
+          app.quit();
+        }
+      }
+    ]);
+
+    // Set tray properties
+    tray.setToolTip('SpaceMouse OSC');
+    tray.setContextMenu(contextMenu);
+
+    // Handle tray click events
+    tray.on('click', () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+
+    tray.on('double-click', () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+
+    log.info('Tray icon created successfully');
+  } catch (error) {
+    log.error('Error creating tray icon:', error);
+  }
+}
+
+async function createWindow() {
+  try {
+    const icons = createAppIcon();
+    
+    mainWindow = new BrowserWindow({
+      width: 800,
+      height: 600,
+      autoHideMenuBar: true,
+      icon: icons ? icons.icon : undefined,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false
+      }
+    });
+
+    // Set window icon explicitly for Linux
+    if (process.platform === 'linux' && icons) {
+      mainWindow.setIcon(icons.icon);
+      
+      // Try setting it as a data URL as fallback
+      const dataUrl = icons.icon.toDataURL();
+      mainWindow.setIcon(nativeImage.createFromDataURL(dataUrl));
+    }
+
+    // Remove menu completely
+    mainWindow.setMenu(null);
+
+    // Load the index.html file
+    await mainWindow.loadFile(path.join(__dirname, 'index.html'));
+
+    // Handle window minimize
+    mainWindow.on('minimize', (event) => {
+      try {
+        const minimizeToTray = store.get('preferences.app_settings.minimizeToTray', true);
+        if (minimizeToTray) {
+          event.preventDefault();
+          mainWindow.hide();
+          // Ensure tray exists when minimizing
+          if (!tray) {
+            createTray();
+          }
+        }
+      } catch (error) {
+        log.error('Error handling window minimize:', error);
+      }
+    });
+
+    // Handle window close
+    mainWindow.on('close', handleWindowClose);
+
+    log.info('Main window created successfully');
+    return mainWindow;
+  } catch (error) {
+    log.error('Error creating main window:', error);
+    throw error;
+  }
+}
+
+function handleWindowClose(event) {
+  try {
+    if (!app.isQuitting) {
+      const minimizeToTray = store.get('preferences.app_settings.minimizeToTray', true);
+      if (minimizeToTray) {
+        event.preventDefault();
+        mainWindow.hide();
+        // Ensure tray exists when minimizing to tray
+        if (!tray) {
+          createTray();
+        }
+        return false;
+      }
+    }
+  } catch (error) {
+    log.error('Error handling window close:', error);
+  }
+}
+
+function handleAutostart(enabled) {
+  try {
+    const exePath = app.getPath('exe');
+    const name = 'SpaceMouse OSC';
+
+    app.setLoginItemSettings({
+      openAtLogin: enabled,
+      path: exePath,
+      name: name,
+      args: ['--hidden']
+    });
+
+    log.info('Autostart setting updated:', { enabled, path: exePath });
+  } catch (error) {
+    log.error('Error updating autostart setting:', error);
+  }
 }
 
 function initializePreferences() {
@@ -320,9 +548,7 @@ function initializePreferences() {
 
     // Handle autostart setting
     if (prefs.app_settings?.autostart !== undefined) {
-      app.setLoginItemSettings({
-        openAtLogin: prefs.app_settings.autostart
-      });
+      handleAutostart(prefs.app_settings.autostart);
     }
 
     // Apply other settings as needed
@@ -347,38 +573,40 @@ function initializePreferences() {
 
 function setupHIDDevice() {
   try {
-    const devices = HID.devices();
-    console.log('Available HID devices:', devices);
+    const deviceSettings = store.get('preferences.device_settings');
+    spaceMice.options = deviceSettings;
+    spaceMice.initialize();
 
-    const spaceMiceDevices = devices.filter(device => 
-      device.vendorId === 0x256F || // 3Dconnexion vendor ID
-      device.manufacturer === '3Dconnexion'
-    );
-
-    if (spaceMiceDevices.length === 0) {
-      console.log('No SpaceMouse devices found');
+    if (spaceMice.mice.length === 0) {
+      log.warn('No SpaceMouse devices found');
       return null;
     }
 
-    console.log('Found SpaceMouse devices:', spaceMiceDevices);
-    const device = spaceMiceDevices[0];
-    console.log('Using device:', device);
+    // Set up data handler
+    spaceMice.onData = (data) => {
+      if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send('spacemouse-data', {
+          translate: data.translate,
+          rotate: data.rotate,
+          buttons: data.buttons
+        });
+      }
 
-    spaceMouse = new HID.HID(device.path);
-    console.log('Successfully connected to SpaceMouse');
+      // Send OSC messages if configured
+      if (udpPort) {
+        const oscData = {
+          translate: data.translate,
+          rotate: data.rotate,
+          buttons: data.buttons
+        };
+        sendOSCData(oscData);
+      }
+    };
 
-    spaceMouse.on('data', (data) => {
-      // Handle SpaceMouse data
-      console.log('SpaceMouse data:', data);
-    });
-
-    spaceMouse.on('error', (error) => {
-      console.error('SpaceMouse error:', error);
-    });
-
-    return spaceMouse;
+    log.info('SpaceMouse devices initialized successfully');
+    return spaceMice;
   } catch (error) {
-    console.error('Error setting up HID device:', error);
+    log.error('Error setting up SpaceMouse devices:', error);
     return null;
   }
 }
@@ -483,20 +711,63 @@ function main() {
 }
 
 // App event handlers
-app.whenReady().then(() => {
-  createWindow();
-  initializePreferences();
+app.whenReady().then(async () => {
+  try {
+    // Create and set application icon
+    const icons = createAppIcon();
+    if (icons) {
+      // Set the app icon
+      app.dock?.setIcon(icons.icon); // For macOS
+      
+      // Set default window icon for Linux
+      if (process.platform === 'linux') {
+        app.commandLine.appendSwitch('force-app-icon', icons.icon);
+      }
+    }
+
+    // Create window and initialize preferences
+    mainWindow = await createWindow();
+    await initializePreferences();
+
+    // Create tray icon
+    createTray();
+
+    // Set initial autostart setting
+    const autostart = store.get('preferences.app_settings.autostart', false);
+    await handleAutostart(autostart);
+
+    // Handle startup with --hidden flag
+    if (process.argv.includes('--hidden')) {
+      mainWindow.hide();
+    }
+  } catch (error) {
+    log.error('Error initializing app:', error);
+    app.quit();
+  }
+}).catch(error => {
+  log.error('Error in app initialization:', error);
+  app.quit();
+});
+
+// Handle quit
+app.on('before-quit', () => {
+  app.isQuitting = true;
 });
 
 app.on('window-all-closed', () => {
+  spaceMice.close();
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+app.on('activate', async () => {
+  if (!mainWindow) {
+    try {
+      await createWindow();
+    } catch (error) {
+      log.error('Error recreating window:', error);
+    }
   }
 });
 
@@ -505,12 +776,12 @@ ipcMain.on('show-preferences', () => {
   preferences.show();
 });
 
-ipcMain.on('get-preferences', (event) => {
+ipcMain.on('getPreferences', (event) => {
   const prefs = store.get('preferences', defaultPreferences);
   event.reply('preferences-updated', prefs);
 });
 
-ipcMain.on('save-preferences', (event, newPrefs) => {
+ipcMain.on('savePreferences', async (event, newPrefs) => {
   store.set('preferences', newPrefs);
   event.reply('preferences-saved', newPrefs);
 });
@@ -627,3 +898,6 @@ const oscAddressFunctions = {
   "/factor": handleFactor,
   "/sendRate": handleSendRate,
 };
+
+// Export store for use in other modules
+module.exports = { store };

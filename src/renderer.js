@@ -9,7 +9,7 @@ let preferences;
 try {
   preferences = ipcRenderer.sendSync("getPreferences");
 } catch (error) {
-  console.error('Error getting preferences:', error);
+  log.error('Error getting preferences:', error);
 }
 
 const modeFunctions = {
@@ -27,7 +27,7 @@ let yzVisualizer;
 let oscIndicator;
 
 // Initialize the application when the DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   try {
     initInputs();
     resetInputValuesOnDoubleClick();
@@ -45,31 +45,36 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Theme handling
     ipcRenderer.on('update-theme', (event, theme) => {
-      console.log('Applying theme:', theme);
+      log.info('Applying theme:', theme);
       document.documentElement.className = `theme-${theme}`;
       document.body.className = `theme-${theme}`;
       
-      // Update visualizer grid theme
-      const visualizers = document.querySelectorAll('.visualizer');
-      visualizers.forEach(v => {
-        v.className = v.className.replace(/theme-\w+/, '');
-        v.className += ` theme-${theme}`;
-      });
-
-      // Store theme in localStorage for persistence
-      localStorage.setItem('theme', theme);
+      // Update visualizer themes
+      if (xyVisualizer) xyVisualizer.updateVisualizerTheme();
+      if (yzVisualizer) yzVisualizer.updateVisualizerTheme();
     });
 
-    // Apply theme on load
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.className = `theme-${savedTheme}`;
-    document.body.className = `theme-${savedTheme}`;
-    
-    // Update visualizer grid theme
-    const visualizers = document.querySelectorAll('.visualizer');
-    visualizers.forEach(v => {
-      v.className = v.className.replace(/theme-\w+/, '');
-      v.className += ` theme-${savedTheme}`;
+    // Handle SpaceMouse data
+    ipcRenderer.on('spacemouse-data', (event, data) => {
+      try {
+        // Update visualizers
+        if (xyVisualizer) {
+          xyVisualizer.updatePosition(data.translate.x, data.translate.y);
+          xyVisualizer.updateRotation(data.rotate.x, data.rotate.y);
+        }
+        if (yzVisualizer) {
+          yzVisualizer.updatePosition(data.translate.y, data.translate.z);
+          yzVisualizer.updateRotation(data.rotate.y, data.rotate.z);
+        }
+
+        // Update UI elements with current values
+        updateUIValues(data);
+
+        // Pulse the OSC indicator
+        if (oscIndicator) oscIndicator.pulse();
+      } catch (error) {
+        log.error('Error handling SpaceMouse data:', error);
+      }
     });
 
     // Theme toggle functionality
@@ -122,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   } catch (error) {
-    console.error('Error initializing application:', error);
+    log.error('Error initializing application:', error);
   }
 });
 
@@ -137,6 +142,20 @@ function setupEventListeners() {
     const versionElement = document.getElementById("appVersion");
     if (versionElement) {
       versionElement.innerHTML = versionElement.innerHTML + appVersion;
+    }
+  });
+
+  ipcRenderer.on("preference-update", async (event, preferences) => {
+    try {
+      // Update theme if changed
+      if (preferences.app_settings?.theme) {
+        document.documentElement.setAttribute('data-theme', preferences.app_settings.theme);
+      }
+
+      // Update any other UI elements based on preferences
+      await updateUIFromPreferences(preferences);
+    } catch (error) {
+      console.error('Error handling preference update:', error);
     }
   });
 
@@ -324,21 +343,6 @@ function setupEventListeners() {
     document.getElementById("sendRate").value = sendRate;
   });
 
-  ipcRenderer.on("spacemouse-data", (event, data) => {
-    // Update visualizations
-    if (xyVisualizer) {
-      xyVisualizer.updatePosition(data.x || 0, data.y || 0, data.z || 0);
-      xyVisualizer.updateRotation(data.rx || 0, data.ry || 0, data.rz || 0);
-    }
-    if (yzVisualizer) {
-      yzVisualizer.updatePosition(data.x || 0, data.y || 0, data.z || 0);
-      yzVisualizer.updateRotation(data.rx || 0, data.ry || 0, data.rz || 0);
-    }
-    if (oscIndicator) {
-      oscIndicator.pulse();
-    }
-  });
-
   ipcRenderer.on("osc-sent", () => {
     if (oscIndicator) {
       oscIndicator.pulse();
@@ -356,6 +360,50 @@ function setupEventListeners() {
     document.getElementById('rotateY').textContent = rotateY;
     document.getElementById('rotateZ').textContent = rotateZ;
   });
+}
+
+async function getPreferences() {
+  try {
+    return ipcRenderer.sendSync('getPreferences');
+  } catch (error) {
+    console.error('Error getting preferences:', error);
+    return null;
+  }
+}
+
+async function updatePreferences(preferences) {
+  try {
+    const result = await ipcRenderer.invoke('updatePreferences', preferences);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update preferences');
+    }
+  } catch (error) {
+    console.error('Error updating preferences:', error);
+    throw error;
+  }
+}
+
+async function savePreferences(preferences) {
+  try {
+    ipcRenderer.send('savePreferences', preferences);
+  } catch (error) {
+    console.error('Error saving preferences:', error);
+    throw error;
+  }
+}
+
+function updateUIFromPreferences(preferences) {
+  try {
+    // Update theme
+    if (preferences.app_settings?.theme) {
+      document.documentElement.setAttribute('data-theme', preferences.app_settings.theme);
+    }
+
+    // Update other UI elements based on preferences
+    // Add any additional UI updates here
+  } catch (error) {
+    console.error('Error updating UI from preferences:', error);
+  }
 }
 
 function initInputs() {
@@ -451,6 +499,7 @@ function modeChange(event) {
     //modeSet = preferences.value('paths_sets.' + modeValue)
     document.getElementById("mode").value = mode;
     set = preferences.paths_sets[mode];
+    console.log("line 313-set: ", set);
     modeFunctions[mode](set);
   } else {
     // Handle the case where the mode is not found
@@ -684,4 +733,28 @@ function updateWindowHeight() {
 
 function clearLog() {
   document.getElementById("logging").innerHTML = '<div id="anchor"></div>';
+}
+
+function updateUIValues(data) {
+  try {
+    // Update translation values
+    document.getElementById('x-value').textContent = data.translate.x.toFixed(3);
+    document.getElementById('y-value').textContent = data.translate.y.toFixed(3);
+    document.getElementById('z-value').textContent = data.translate.z.toFixed(3);
+
+    // Update rotation values
+    document.getElementById('roll-value').textContent = data.rotate.x.toFixed(3);
+    document.getElementById('pitch-value').textContent = data.rotate.y.toFixed(3);
+    document.getElementById('yaw-value').textContent = data.rotate.z.toFixed(3);
+
+    // Update button states
+    data.buttons.forEach((state, index) => {
+      const button = document.getElementById(`button-${index}`);
+      if (button) {
+        button.classList.toggle('active', state);
+      }
+    });
+  } catch (error) {
+    log.error('Error updating UI values:', error);
+  }
 }
