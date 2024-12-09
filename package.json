@@ -23,9 +23,11 @@
     "electron-context-menu": "^3.6.1",
     "electron-log": "^4.4.8",
     "electron-preferences": "^2.8.2",
+    "electron-store": "8.1.0",
     "lodash": "^4.17.21",
     "node-hid": "^3.0.0",
-    "osc": "^2.4.4"
+    "osc": "^2.4.4",
+    "three": "^0.159.0"
   },
   "build": {
     "appId": "mouse3d-osc",
