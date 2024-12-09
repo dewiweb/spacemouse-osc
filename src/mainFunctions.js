@@ -1,37 +1,68 @@
-const { dialog } = require('electron');
+const { dialog, app, nativeTheme } = require('electron');
 const fs = require('fs');
+const HID = require('node-hid');
+const path = require('path');
+const Store = require('electron-store');
 
+// Import store instance from main process instead of creating a new one
+let store;
+try {
+  store = require('./main').store;
+} catch (error) {
+  // Fallback store for when running independently
+  store = new Store();
+}
+
+// Initialize electron store with schema
+const storeSchema = {
+  preferences: {
+    type: 'object',
+    properties: {
+      app_settings: {
+        type: 'object',
+        properties: {
+          theme: { type: 'string', enum: ['dark', 'light'], default: 'dark' },
+          autostart: { type: 'boolean', default: false },
+          minimizeToTray: { type: 'boolean', default: true }
+        },
+        default: {
+          theme: 'dark',
+          autostart: false,
+          minimizeToTray: true
+        }
+      },
+      osc_settings: {
+        type: 'object',
+        properties: {
+          host: { type: 'string', default: '127.0.0.1' },
+          port: { type: 'number', default: 9000 },
+          address: { type: 'string', default: '/spacemouse' }
+        }
+      },
+      device_settings: {
+        type: 'object',
+        properties: {
+          sensitivity: { type: 'number', default: 1.0 },
+          deadzone: { type: 'number', default: 0.1 }
+        }
+      }
+    }
+  }
+};
+
+// Math and mapping utilities
 module.exports = {
-  //copied from https://github.com/jean-emmanuel/open-stage-control/blob/master/src/client/widgets/utils.js
-
   clip: function (value, range) {
-
     value = parseFloat(value)
-
     if (isNaN(value)) value = range[0]
-
     return Math.max(Math.min(range[0], range[1]), Math.min(value, Math.max(range[0], range[1])))
   },
-  // map a value from a scale to another
-  //     value: number
-  //     rangeIn: [number, number]
-  //     rangeOut: [number, number]
-  //     decimals: number (-1 to bypass)
-  //     log: true, or manual log scale (max log value)
-  //     revertLog: boolean
 
   mapToScale: function (value, rangeIn, rangeOut, decimals, log, revertlog) {
-
-    // clip in
     value = module.exports.clip(value, [rangeIn[0], rangeIn[1]])
-
-
-    // normalize
     value = (value - rangeIn[0]) / (rangeIn[1] - rangeIn[0])
 
-    // log scale
     if (log) {
-
       var logScale = revertlog ? Math.abs(rangeIn[1] - rangeIn[0]) :
         Math.abs(rangeOut[1] - rangeOut[0])
 
@@ -44,53 +75,49 @@ module.exports = {
       value = revertlog ?
         Math.log(value * (logScale - 1) + 1) / Math.log(logScale) :
         Math.pow(logScale, value) / (logScale - 1) - 1 / (logScale - 1)
-
     }
 
-    // scale out
     value = value * (rangeOut[1] - rangeOut[0]) + rangeOut[0]
-
-    // clip out
     value = module.exports.clip(value, [rangeOut[0], rangeOut[1]])
-
-    // decimals
     if (decimals !== -1) value = parseFloat(value.toFixed(decimals))
-
     return value
-
   },
 
+  // OSC utilities
   oscToEmber: function (oscBundle) {
     let oscArgs = JSON.stringify(oscBundle.args);
     oscArgs = oscArgs.replace(/\s|\[|\]/g, "");
     oscArgs = JSON.parse(oscArgs);
     oscArgs = oscArgs.value;
     oscArgs = Number(oscArgs);
-    console.log("oscArgs", oscArgs);
     return oscArgs
   },
+
   embChPath: function (chNumb) {
     let eChPath = 'Channels.Inputs.INP   ';
     eChPath = eChPath.concat(chNumb.toString());
     return eChPath
   },
+
   embFadLevPath: function (eChPath) {
     let eFadLevPath = eChPath.concat('.Fader.Fader Level');
     return eFadLevPath
   },
+
   pathToAddress: function (path) {
     let oscAddress = path.replace(/\./g, '/');
     slash = "/";
     oscAddress = slash.concat(oscAddress);
     return oscAddress
   },
+
   addressToPath: function (address) {
     let path = address.replace(/\//g, '.');
     path = path.slice(1);
     return path
   },
 
-  fromAbsoluteToRelative : function (data, commonRangeXYZ, commonRangeRPY, origins) {
+  fromAbsoluteToRelative: function (data, commonRangeXYZ, commonRangeRPY, origins) {
     const [x, y, z, roll, pitch, yaw] = data.split(',');
     
     const [minCommonXYZ, maxCommonXYZ] = commonRangeXYZ;
@@ -105,40 +132,66 @@ module.exports = {
     const rangePitch = [prevPitch - minCommonRPY, prevPitch + maxCommonRPY];
     const rangeYaw = [prevYaw - minCommonRPY, prevYaw + maxCommonRPY];
   
-    let relativeX = parseFloat(x) + prevX;
-    let relativeY = parseFloat(y) + prevY;
-    let relativeZ = parseFloat(z) + prevZ;
-    let relativeRoll = parseFloat(roll) + prevRoll;
-    let relativePitch = parseFloat(pitch) + prevPitch;
-    let relativeYaw = parseFloat(yaw) + prevYaw;
+    // Map values to relative ranges
+    const relX = module.exports.mapToScale(x, rangeX, [-1, 1], 3);
+    const relY = module.exports.mapToScale(y, rangeY, [-1, 1], 3);
+    const relZ = module.exports.mapToScale(z, rangeZ, [-1, 1], 3);
+    const relRoll = module.exports.mapToScale(roll, rangeRoll, [-1, 1], 3);
+    const relPitch = module.exports.mapToScale(pitch, rangePitch, [-1, 1], 3);
+    const relYaw = module.exports.mapToScale(yaw, rangeYaw, [-1, 1], 3);
   
-    if (relativeX < rangeX[0] || relativeX > rangeX[1]) {
-      relativeX = prevX;
-    }
-    if (relativeY < rangeY[0] || relativeY > rangeY[1]) {
-      relativeY = prevY;
-    }
-    if (relativeZ < rangeZ[0] || relativeZ > rangeZ[1]) {
-      relativeZ = prevZ;
-    }
-    if (relativeRoll < rangeRoll[0] || relativeRoll > rangeRoll[1]) {
-      relativeRoll = prevRoll;
-    }
-    if (relativePitch < rangePitch[0] || relativePitch > rangePitch[1]) {
-      relativePitch = prevPitch;
-    }
-    if (relativeYaw < rangeYaw[0] || relativeYaw > rangeYaw[1]) {
-      relativeYaw = prevYaw;
-    }
-  
-    origins.prevX = relativeX;
-    origins.prevY = relativeY;
-    origins.prevZ = relativeZ;
-    origins.prevRoll = relativeRoll;
-    origins.prevPitch = relativePitch;
-    origins.prevYaw = relativeYaw;
-  
-    return { relativeX, relativeY, relativeZ, relativeRoll, relativePitch, relativeYaw, origins };
-  }
+    return [relX, relY, relZ, relRoll, relPitch, relYaw];
+  },
 
-}
+  // Utility functions for preferences and HID
+  getPreferences: function() {
+    return store.get('preferences');
+  },
+
+  setPreferences: function(prefs) {
+    store.set('preferences', prefs);
+  },
+
+  getTheme: function() {
+    return store.get('preferences.app_settings.theme', 'dark');
+  },
+
+  getSystemTheme: function() {
+    return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+  },
+
+  handleAutostart: function(enabled) {
+    app.setLoginItemSettings({
+      openAtLogin: enabled
+    });
+  },
+
+  setupHIDDevice: function() {
+    try {
+      const devices = HID.devices();
+      console.log('Available HID devices:', devices);
+
+      const spaceMiceDevices = devices.filter(device => 
+        device.vendorId === 0x256F || // 3Dconnexion vendor ID
+        device.manufacturer === '3Dconnexion'
+      );
+
+      if (spaceMiceDevices.length === 0) {
+        console.log('No SpaceMouse devices found');
+        return null;
+      }
+
+      console.log('Found SpaceMouse devices:', spaceMiceDevices);
+      const device = spaceMiceDevices[0];
+      console.log('Using device:', device);
+
+      const spaceMouse = new HID.HID(device.path);
+      console.log('Successfully connected to SpaceMouse');
+
+      return spaceMouse;
+    } catch (error) {
+      console.error('Error setting up HID device:', error);
+      return null;
+    }
+  }
+};
