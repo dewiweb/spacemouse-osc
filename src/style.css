@@ -1,9 +1,42 @@
+/* Nord Theme Colors */
+:root {
+  /* Dark theme (default) */
+  --background: #2E3440;
+  --secondary-background: #3B4252;
+  --border: #434C5E;
+  --text: #E5E9F0;
+  --button: #8FBCBB;
+  --button-hover: #88C0D0;
+  --accent: #5E81AC;
+  --input-bg: #282828;
+  --red: #BF616A;
+  --green: #A3BE8C;
+  --blue: #81A1C1;
+  --cyan: #88C0D0;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --background: #ECEFF4;
+  --secondary-background: #E5E9F0;
+  --border: #D8DEE9;
+  --text: #2E3440;
+  --button: #5E81AC;
+  --button-hover: #81A1C1;
+  --accent: #88C0D0;
+  --input-bg: #D8DEE9;
+  --red: #BF616A;
+  --green: #A3BE8C;
+  --blue: #81A1C1;
+  --cyan: #88C0D0;
+}
+
 /* Nord Theme Scrollbar */
 
 ::-webkit-scrollbar {
   width: .875em;
   height: .875em;
-  background: #2E3440;  /* Nord background color */
+  background: var(--background);  /* Nord background color */
 }
 
 ::-webkit-scrollbar-track-piece {
@@ -11,22 +44,22 @@
   border: solid .25em transparent;
   border-right-width: .5em;
   margin: .25em;
-  box-shadow: inset .0625em .0625em 0 0 #4C566A, inset -.0625em -.0625em 0 0 #D8DEE9;  /* Nord shadow colors */
+  box-shadow: inset .0625em .0625em 0 0 var(--border), inset -.0625em -.0625em 0 0 var(--accent);  /* Nord shadow colors */
 }
 
 ::-webkit-scrollbar-thumb {
   border: solid 0 transparent;
   border-right-width: .25em;
   border-radius: .3125em;
-  box-shadow: inset 0 0 0 .0625em #5E81AC, inset 0 0 0 .375em #81A1C1;  /* Nord thumb colors */
+  box-shadow: inset 0 0 0 .0625em var(--button), inset 0 0 0 .375em var(--button-hover);  /* Nord thumb colors */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  box-shadow: inset 0 0 0 .0625em #88C0D0, inset 0 0 0 .375em #8FBCBB;  /* Nord thumb hover colors */
+  box-shadow: inset 0 0 0 .0625em var(--button-hover), inset 0 0 0 .375em var(--button);  /* Nord thumb hover colors */
 }
 
 ::-webkit-scrollbar-corner {
-  background: #E5E9F0;  /* Nord corner color */
+  background: var(--secondary-background);  /* Nord corner color */
 }
 
 
@@ -34,8 +67,8 @@
 
 @media (prefers-color-scheme: dark) {
   body,.main{
-    background-color: #2E3440;  /* Nord background color */
-    color: #E5E9F0;  /* Nord text color */
+    background-color: var(--background);  /* Nord background color */
+    color: var(--text);  /* Nord text color */
     /*font-family: Arial, Helvetica, sans-serif;*/
     font-family: 'Fira Code', monospace;
     src: local(''),
@@ -60,28 +93,22 @@
   }
 
   .button {
-    background-color: #5E81AC;  /* Nord button color */
+    background-color: var(--button);  /* Nord button color */
     border-radius: 10px;
     border-style: none;
-    color: #E5E9F0;  /* Nord text color */
+    color: var(--text);  /* Nord text color */
     font-weight: bold;
   }
 
   .button_up {
-    background-color: #8FBCBB;  /* Nord button color */
+    background-color: var(--button);  /* Nord button color */
     border-radius: 10px;
     border-style: none;
     font-weight: bold;
   }
 
-  .infoDot {
-    font-weight: bold;
-    font-size: 500%;
-    color: #D08770;  /* Nord accent color */
-  }
-
   button {
-    background-color: #8FBCBB;  /* Nord button color */
+    background-color: var(--button);  /* Nord button color */
     border-radius: 10px;
     border-style: none;
     font-weight: bold;
@@ -89,8 +116,8 @@
 
   input,select {
     text-align: center;
-    background-color: #282828;
-    color: #E5E9F0
+    background-color: var(--input-bg);
+    color: var(--text)
   }
 
 
@@ -109,7 +136,7 @@
   }
 
   .form {
-    border: solid #4C566A;  /* Nord border color */
+    border: solid var(--border);  /* Nord border color */
     padding: 0.001px;
   }
 
@@ -121,7 +148,7 @@
   table,
   th,
   td {
-    border: 1px solid #4C566A;  /* Nord border color */
+    border: 1px solid var(--border);  /* Nord border color */
   }
 
   td{
@@ -141,7 +168,7 @@
   #add1,
   #add2,
   #add3 {
-    color: #E5E9F0;  /* Nord text color */
+    color: var(--text);  /* Nord text color */
     font-style: italic;
     font-size: smaller;
   }
@@ -154,7 +181,7 @@
 
   caption {
     font-weight: bold;
-    background-color: #2E3440;  /* Nord background color */
+    background-color: var(--background);  /* Nord background color */
   }
 }
 
@@ -170,7 +197,7 @@
 
 .toggle {
   position: absolute;
-  border: 2px solid #4C566A;  /* Nord border color */
+  border: 2px solid var(--border);  /* Nord border color */
   border-radius: 20px;
   transition: border-color 0.6s ease-out;
   box-sizing: border-box;
@@ -187,7 +214,7 @@
   width: 10px;
   bottom: 3px;
   right: 20px;
-  background-color: #4C566A;  /* Nord border color */
+  background-color: var(--border);  /* Nord border color */
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s 0.1s, width 0.1s, top 0.1s, bottom 0.1s;
@@ -199,8 +226,8 @@
   bottom: 3px;
   right: 3px;
   border-radius: 23px;
-  background-color: #8FBCBB;  /* Nord button color */
-  box-shadow: 0 0 16px #4B7A8D;  /* Nord accent color */
+  background-color: var(--button);  /* Nord button color */
+  box-shadow: 0 0 16px var(--accent);  /* Nord accent color */
   transition: all 0.2s 0.1s, right 0.1s;
 }
 
@@ -224,7 +251,7 @@
 
 /* Menu */
 #menu {
-  background-color: #2E3440;  /* Nord background color */
+  background-color: var(--background);  /* Nord background color */
   border-radius: 10px;
   display: flex;
   flex-direction: row;
@@ -252,12 +279,17 @@ input[type="range"] {
 }
 
 #logging {
-  max-height: 1px;
+  min-height: 150px;
+  max-height: 150px;
   overflow: auto;
   flex-direction: column;
-  background-color: #282828;
-  color:  #E5E9F0;
-  font-size:  10px;
+  background-color: var(--secondary-background);
+  color: var(--text);
+  font-size: 10px;
+  border: solid var(--border);
+  border-radius: 10px;
+  margin: 0 10px;
+  transition: all 0.3s ease-in-out;
 }
 
 #logging *{
@@ -275,6 +307,283 @@ input[type="range"] {
   border-radius: 1em;
   margin: 0.5em;
   line-height: 1.1em;
-  background-color: #282828;
-  color: #E5E9F0;
+  background-color: var(--input-bg);
+  color: var(--text);
+}
+
+#clearlogs button {
+  background-color: var(--button);
+  border-radius: 10px;
+  border-style: none;
+  font-weight: bold;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+#viewlogs {
+  background-color: var(--button);
+  border-radius: 10px;
+  border-style: none;
+  font-weight: bold;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+/* 3D Visualization Styles */
+.visualization-section {
+  margin: 20px;
+  font-family: 'Fira Code', monospace;
+}
+
+.visualization-header {
+  cursor: default;
+  padding: 5px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.visualization-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 10px;
+  transition: all 0.3s ease;
+}
+
+.visualization-box {
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.visualization-box h3 {
+  margin: 0 0 10px 0;
+  color: var(--text);
+  font-size: 14px;
+}
+
+#threejs-container-xy,
+#threejs-container-yz {
+  width: 100%;
+  height: 120px;
+  background-color: var(--background);
+  border-radius: 4px;
+}
+
+#viewvis {
+  background-color: var(--button);
+  border-radius: 10px;
+  border-style: none;
+  font-weight: bold;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+.visualization-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 10px;
+  height: 100%;
+}
+
+.visualization-item {
+  background: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.visualization-title {
+  padding: 4px 8px;
+  background: #f5f5f5;
+  font-size: 12px;
+  font-weight: bold;
+  color: #666;
+  text-align: center;
+}
+
+.threejs-container {
+  flex: 1;
+  position: relative;
+  background: #fff;
+  border: 1px solid #eee;
+}
+
+.osc-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--border);
+  opacity: 0.5;
+  margin-left: 10px;
+  transition: all 0.1s ease;
+}
+
+#visualization-container {
+  width: 100%;
+  margin: 0;
+  background: #f5f5f5;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#threejs-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  background: #fff;
+}
+
+#osc-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #333;
+  opacity: 0.5;
+  transition: opacity 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+#osc-indicator.active {
+  background-color: #00ff00;
+  opacity: 1;
+}
+
+/* Pulse animation for OSC indicator */
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+#osc-indicator.pulse {
+  animation: pulse 0.2s ease-in-out;
+}
+
+.visualization-content {
+  transition: all 0.3s ease-in-out;
+}
+
+.section-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+button:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+  transition: all 0.2s ease-in-out;
+}
+
+button:focus, input:focus, select:focus {
+  outline: 2px solid var(--button-hover);
+  outline-offset: 2px;
+}
+
+input:hover, select:hover {
+  border-color: var(--button-hover);
+  transition: border-color 0.2s ease-in-out;
+}
+
+/* Apply theme colors */
+body, .main {
+  background-color: var(--background);
+  color: var(--text);
+  font-family: 'Fira Code', monospace;
+}
+
+.button {
+  background-color: var(--button);
+  color: var(--text);
+}
+
+.button_up {
+  background-color: var(--button);
+}
+
+button {
+  background-color: var(--button);
+  color: var(--text);
+}
+
+input, select {
+  background-color: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+table, th, td {
+  border: 1px solid var(--border);
+}
+
+#logging {
+  background-color: var(--secondary-background);
+  color: var(--text);
+  border: solid var(--border);
+}
+
+.visualization-box {
+  background-color: var(--background);
+  border: 1px solid var(--border);
+}
+
+.visualization-box h3 {
+  color: var(--text);
+}
+
+#threejs-container-xy,
+#threejs-container-yz {
+  background-color: var(--background);
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background-color: var(--button);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.theme-toggle:hover {
+  background-color: var(--button-hover);
+}
+
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--text);
+}
+
+/* Default theme (dark) */
+:root {
+  color-scheme: dark;
+}
+
+/* Hide sun icon by default in dark mode */
+.sun {
+  display: none;
+}
+
+/* Show moon icon by default in dark mode */
+.moon {
+  display: block;
 }

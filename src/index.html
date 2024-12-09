@@ -3,11 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <title>spacemouse-osc</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.159.0/three.min.js"></script>
     <script script type="text/javascript" src="./renderer.js"></script>
+    <script script type="text/javascript" src="./visualization.js"></script>
     <link rel="stylesheet" type="text/css" href="./style.css" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="script-src 'self' 'unsafe-inline';"
+      content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com;"
     />
   </head>
   <body>
@@ -20,6 +22,15 @@
         &#9881; Preferences
       </button>
     </div>
+    <!-- Theme toggle button -->
+    <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+      <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <!-- Moon icon (for dark theme) -->
+        <path class="moon" d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+        <!-- Sun icon (for light theme) -->
+        <path class="sun" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    </button>
     <div>
       <div class="table">
         <table id="tableOfConnection" style="width: 100%; text-align: center">
@@ -224,20 +235,41 @@
         </table>
       </div>
     </div>
+    <div class="visualization-section">
+      <div style="width: 100%; height: 20px; text-align: center; font-weight: bold;">
+        Visualization <button id="viewvis" onclick="toggleVisualization()">▼</button>
+        <span id="osc-indicator" class="osc-indicator"></span>
+      </div>
+      <div id="visualization-content" style="visibility: visible; max-height: 400px;">
+        <div class="visualization-container">
+          <div class="visualization-box">
+            <h3>XY Plane</h3>
+            <div id="threejs-container-xy"></div>
+          </div>
+          <div class="visualization-box">
+            <h3>YZ Plane</h3>
+            <div id="threejs-container-yz"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="width: 100%; height: 20px; text-align: center; font-weight: bold;">
+        LOGS <button id="viewlogs" onclick="viewlogs()">▼</button>
+      </div>
+      <div id="logging" style="visibility: visible; min-height: 150px; max-height: 150px;">
+        <div id="anchor"></div>
+      </div>
+      <div id="clearlogs" style="width: 100%; height: 20px; text-align: center; visibility: visible;">
+        <button onclick="clearLog()">
+          Clear Logs!
+        </button>
+      </div>
+    </div>
     <div
       style="width: 100%; height: 20px; text-align: center; font-weight: bold;"
     >
-      LOGS <button id="viewlogs" onclick="viewlogs()">►</button>
-    </div>
-    <div
-      id="logging"
-      style="
-        visibility: hidden;
-        border: solid #3b4252;
-        border-radius: 10px;
-      "
-    >
-      <div id="anchor"></div>
     </div>
     <div id="clearlogs" style="width: 100%; height: 1px; visibility: hidden;">
       <button
