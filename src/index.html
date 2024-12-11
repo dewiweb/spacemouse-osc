@@ -236,24 +236,33 @@
       </div>
     </div>
     <div class="visualization-section">
-      <div style="width: 100%; height: 20px; text-align: center; font-weight: bold;">
+      <div style="width: 100%; text-align: center; font-weight: bold;">
         Visualization <button id="viewvis" onclick="toggleVisualization()">▼</button>
         <span id="osc-indicator" class="osc-indicator"></span>
       </div>
-      <div id="visualization-content" style="visibility: visible; max-height: 400px;">
-        <div class="visualization-container">
-          <div class="visualization-box">
-            <h3>XY Plane</h3>
-            <div id="threejs-container-xy"></div>
+      <div id="visualizers" style="display: none;">
+        <div class="visualizers">
+          <div class="visualizer-container">
+            <h3>Position (XYZ)</h3>
+            <div id="xyz-visualizer"></div>
+            <div class="legend">
+              <div class="legend-item"><span class="color-box x-color"></span>X (Left/Right)</div>
+              <div class="legend-item"><span class="color-box y-color"></span>Y (Forward/Back)</div>
+              <div class="legend-item"><span class="color-box z-color"></span>Z (Up/Down)</div>
+            </div>
           </div>
-          <div class="visualization-box">
-            <h3>YZ Plane</h3>
-            <div id="threejs-container-yz"></div>
+          <div class="visualizer-container">
+            <h3>Rotation (Pitch/Roll/Yaw)</h3>
+            <div id="orbital-visualizer"></div>
+            <div class="legend">
+              <div class="legend-item"><span class="color-box pitch-color"></span>Pitch (X - Forward/Back)</div>
+              <div class="legend-item"><span class="color-box roll-color"></span>Roll (Y - Side/Side)</div>
+              <div class="legend-item"><span class="color-box yaw-color"></span>Yaw (Z - Left/Right)</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-
     <div>
       <div style="width: 100%; height: 20px; text-align: center; font-weight: bold;">
         LOGS <button id="viewlogs" onclick="viewlogs()">▼</button>
