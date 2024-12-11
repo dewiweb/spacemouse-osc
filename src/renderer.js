@@ -1,7 +1,7 @@
 const { ipcRenderer } = require('electron');
 const log = require("electron-log");
 const _ = require("lodash");
-const { SpaceMouseVisualizer, OSCIndicator } = require('./visualization');
+const { initVisualizers, updateVisualizers } = require('./visualization.js');
 const Store = require('electron-store');
 const store = new Store();
 
@@ -33,9 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     resetInputValuesOnDoubleClick();
     
     // Initialize visualizations
-    xyVisualizer = new SpaceMouseVisualizer('threejs-container-xy', 'xy');
-    yzVisualizer = new SpaceMouseVisualizer('threejs-container-yz', 'yz');
-    oscIndicator = new OSCIndicator('osc-indicator');
+    initVisualizers();
     
     // Set up event listeners
     setupEventListeners();
@@ -50,30 +48,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.body.className = `theme-${theme}`;
       
       // Update visualizer themes
-      if (xyVisualizer) xyVisualizer.updateVisualizerTheme();
-      if (yzVisualizer) yzVisualizer.updateVisualizerTheme();
+      initVisualizers();
     });
 
     // Handle SpaceMouse data
     ipcRenderer.on('spacemouse-data', (event, data) => {
       try {
-        // Update visualizers
-        if (xyVisualizer) {
-          xyVisualizer.updatePosition(data.translate.x, data.translate.y);
-          xyVisualizer.updateRotation(data.rotate.x, data.rotate.y);
-        }
-        if (yzVisualizer) {
-          yzVisualizer.updatePosition(data.translate.y, data.translate.z);
-          yzVisualizer.updateRotation(data.rotate.y, data.rotate.z);
-        }
-
-        // Update UI elements with current values
         updateUIValues(data);
-
-        // Pulse the OSC indicator
-        if (oscIndicator) oscIndicator.pulse();
       } catch (error) {
-        log.error('Error handling SpaceMouse data:', error);
+        console.error("Error handling SpaceMouse data:", error);
       }
     });
 
@@ -95,8 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateThemeIcon(newTheme);
 
       // Update visualizers with new theme
-      if (xyVisualizer) xyVisualizer.updateVisualizerTheme();
-      if (yzVisualizer) yzVisualizer.updateVisualizerTheme();
+      initVisualizers();
 
       // Update preferences
       const currentPrefs = ipcRenderer.sendSync('getPreferences');
@@ -110,8 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateThemeIcon(theme);
       
       // Update visualizers with new theme
-      if (xyVisualizer) xyVisualizer.updateVisualizerTheme();
-      if (yzVisualizer) yzVisualizer.updateVisualizerTheme();
+      initVisualizers();
     });
 
     function updateThemeIcon(theme) {
@@ -295,9 +276,17 @@ function setupEventListeners() {
     if (modeFunctions[mode]) {
       //modeSet = preferences.value('paths_sets.' + modeValue)
       document.getElementById("mode").value = mode;
-      set = preferences.paths_sets[mode];
-      console.log("line 313-set: ", set);
-      modeFunctions[mode](set);
+      
+      // Save mode to preferences
+      const currentPrefs = ipcRenderer.sendSync('getPreferences');
+      if (!currentPrefs.device_settings) {
+        currentPrefs.device_settings = {};
+      }
+      currentPrefs.device_settings.mode = mode;
+      ipcRenderer.send('savePreferences', currentPrefs);
+      
+      // Call mode function without set parameter
+      modeFunctions[mode]();
     } else {
       // Handle the case where the mode is not found
       logger("Unknown mode:", mode);
@@ -371,24 +360,42 @@ async function getPreferences() {
   }
 }
 
-async function updatePreferences(preferences) {
+async function updatePreferences(newPrefs) {
   try {
-    const result = await ipcRenderer.invoke('updatePreferences', preferences);
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to update preferences');
+    const currentPrefs = ipcRenderer.sendSync('getPreferences');
+    const updatedPrefs = _.merge({}, currentPrefs, newPrefs);
+    
+    // Ensure port values are numbers
+    if (updatedPrefs.osc_settings) {
+      if (updatedPrefs.osc_settings.clientPort) {
+        updatedPrefs.osc_settings.clientPort = parseInt(updatedPrefs.osc_settings.clientPort, 10);
+      }
+      if (updatedPrefs.osc_settings.serverPort) {
+        updatedPrefs.osc_settings.serverPort = parseInt(updatedPrefs.osc_settings.serverPort, 10);
+      }
     }
+    
+    savePreferences(updatedPrefs);
   } catch (error) {
     console.error('Error updating preferences:', error);
-    throw error;
   }
 }
 
 async function savePreferences(preferences) {
   try {
+    // Ensure port values are numbers
+    if (preferences.osc_settings) {
+      if (preferences.osc_settings.clientPort) {
+        preferences.osc_settings.clientPort = parseInt(preferences.osc_settings.clientPort, 10);
+      }
+      if (preferences.osc_settings.serverPort) {
+        preferences.osc_settings.serverPort = parseInt(preferences.osc_settings.serverPort, 10);
+      }
+    }
+    
     ipcRenderer.send('savePreferences', preferences);
   } catch (error) {
     console.error('Error saving preferences:', error);
-    throw error;
   }
 }
 
@@ -494,18 +501,28 @@ function displayForm3(event) {
 }
 
 function modeChange(event) {
-  mode = event.target.value;
-  if (modeFunctions[mode]) {
-    //modeSet = preferences.value('paths_sets.' + modeValue)
-    document.getElementById("mode").value = mode;
-    set = preferences.paths_sets[mode];
-    console.log("line 313-set: ", set);
-    modeFunctions[mode](set);
-  } else {
-    // Handle the case where the mode is not found
-    logger("Unknown mode:", mode);
+  try {
+    const mode = event.target.value;
+    if (modeFunctions[mode]) {
+      document.getElementById("mode").value = mode;
+      
+      // Save mode to preferences
+      const currentPrefs = ipcRenderer.sendSync('getPreferences');
+      if (!currentPrefs.device_settings) {
+        currentPrefs.device_settings = {};
+      }
+      currentPrefs.device_settings.mode = mode;
+      ipcRenderer.send('savePreferences', currentPrefs);
+      
+      // Call mode function without set parameter
+      modeFunctions[mode]();
+    } else {
+      // Handle the case where the mode is not found
+      logger("Unknown mode:", mode);
+    }
+  } catch (error) {
+    console.error("Error changing mode:", error);
   }
-
 }
 
 function setVisibility(elementIds, visibility) {
@@ -527,32 +544,42 @@ function setAtVisibility(elementIds, visibility) {
   });
 }
 
-function customMode(set) {
-  console.log("line 280 - entering function customMode with set: ", set);
-  modeArray = JSON.parse(set);
-  atArray = document.querySelectorAll(".at");
-  valueArray = document.querySelectorAll(".value");
-  bypArray = document.querySelectorAll(".byp");
-  quadrupletArray = modeArray.map((element, index) => [
-    element,
-    atArray[index],
-    valueArray[index],
-    bypArray[index + 1],
-  ]);
-  //console.log("quadruplet_array : ", quadrupletArray);
-  for (i = 0; i < quadrupletArray.length; i++) {
-    if (!quadrupletArray[i][0]) {
-      bypArray[i + 1].className = "button byp";
-      bypArray[i + 1].innerHTML = "Enable";
-      atArray[i].style.visibility = "hidden";
-      valueArray[i].style.visibility = "hidden";
-    } else {
-      bypArray[i + 1].className = "button_up byp";
-      bypArray[i + 1].innerHTML = "Bypass";
-      atArray[i].style.visibility = "visible";
-      atArray[i].firstElementChild.value = "/" + quadrupletArray[i][0];
-      valueArray[i].style.visibility = "visible";
+function customMode() {
+  try {
+    // Get current preferences
+    const prefs = ipcRenderer.sendSync('getPreferences');
+    const mode = prefs?.device_settings?.mode || 'xyz';
+
+    // Update UI based on mode
+    const elementIds = ['tr_x', 'tr_y', 'tr_z', 'rot_x', 'rot_y', 'rot_z'];
+    
+    switch (mode) {
+      case 'aed':
+        setVisibility(['tr_x', 'tr_y', 'tr_z'], 'hidden');
+        setVisibility(['rot_x', 'rot_y', 'rot_z'], 'visible');
+        break;
+      case 'ad':
+        setVisibility(['tr_x', 'tr_y', 'tr_z'], 'hidden');
+        setVisibility(['rot_x', 'rot_y'], 'visible');
+        setVisibility(['rot_z'], 'hidden');
+        break;
+      case 'xyz':
+        setVisibility(['tr_x', 'tr_y', 'tr_z'], 'visible');
+        setVisibility(['rot_x', 'rot_y', 'rot_z'], 'visible');
+        break;
+      case 'xy':
+        setVisibility(['tr_x', 'tr_y'], 'visible');
+        setVisibility(['tr_z', 'rot_x', 'rot_y', 'rot_z'], 'hidden');
+        break;
+      default:
+        // For custom modes, show all controls
+        setVisibility(elementIds, 'visible');
     }
+    
+    // Update window height after changing visibility
+    updateWindowHeight();
+  } catch (error) {
+    console.error("Error in customMode:", error);
   }
 }
 
@@ -680,17 +707,17 @@ function viewlogs() {
 }
 
 function toggleVisualization() {
-  let content = document.getElementById("visualization-content");
-  let button = document.getElementById("viewvis");
+  const visualizers = document.getElementById('visualizers');
+  const button = document.getElementById('viewvis');
   
-  if (content.style.visibility === "hidden") {
-    content.style.visibility = "visible";
-    content.style.maxHeight = "400px";
-    button.textContent = "▼";
+  if (!visualizers || !button) return;
+  
+  if (visualizers.style.display === 'none') {
+    visualizers.style.display = 'flex';
+    button.innerHTML = '▼';
   } else {
-    content.style.visibility = "hidden";
-    content.style.maxHeight = "1px";
-    button.textContent = "►";
+    visualizers.style.display = 'none';
+    button.innerHTML = '▲';
   }
   
   // Update window height after toggle
@@ -709,7 +736,7 @@ function updateWindowHeight() {
   
   // Visualization section
   const visContent = document.getElementById("visualization-content");
-  if (visContent && visContent.style.visibility === "visible") {
+  if (visContent && visContent.style.display !== 'none') {
     height += 20;  // Header
     height += 120; // Visualizer height
     height += 40;  // Padding and margins
@@ -737,24 +764,49 @@ function clearLog() {
 
 function updateUIValues(data) {
   try {
-    // Update translation values
-    document.getElementById('x-value').textContent = data.translate.x.toFixed(3);
-    document.getElementById('y-value').textContent = data.translate.y.toFixed(3);
-    document.getElementById('z-value').textContent = data.translate.z.toFixed(3);
+    // Update visualizers
+    updateVisualizers(data);
 
-    // Update rotation values
-    document.getElementById('roll-value').textContent = data.rotate.x.toFixed(3);
-    document.getElementById('pitch-value').textContent = data.rotate.y.toFixed(3);
-    document.getElementById('yaw-value').textContent = data.rotate.z.toFixed(3);
-
-    // Update button states
-    data.buttons.forEach((state, index) => {
-      const button = document.getElementById(`button-${index}`);
-      if (button) {
-        button.classList.toggle('active', state);
-      }
-    });
+    // Update OSC indicator
+    const oscIndicator = document.getElementById('osc-indicator');
+    if (oscIndicator) {
+      oscIndicator.classList.add('pulse');
+      setTimeout(() => oscIndicator.classList.remove('pulse'), 100);
+    }
   } catch (error) {
-    log.error('Error updating UI values:', error);
+    console.error("Error updating UI values:", error);
   }
 }
+
+// Initialize when document is ready
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    // Show visualizers by default
+    const visualizers = document.getElementById('visualizers');
+    if (visualizers) {
+      visualizers.style.display = 'flex';
+    }
+    
+    // Initialize visualizers
+    initVisualizers();
+    
+    // Update button state
+    const button = document.getElementById('viewvis');
+    if (button) {
+      button.innerHTML = '▼';
+    }
+  } catch (error) {
+    console.error("Error initializing visualizers:", error);
+  }
+});
+
+// Theme change handler
+ipcRenderer.on('update-theme', (event, theme) => {
+  try {
+    document.documentElement.setAttribute('data-theme', theme);
+    // Re-initialize visualizers to update colors
+    initVisualizers();
+  } catch (error) {
+    console.error("Error updating theme:", error);
+  }
+});

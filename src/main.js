@@ -30,16 +30,19 @@ const store = new Store({
         osc_settings: {
           type: 'object',
           properties: {
-            host: { type: 'string', default: '127.0.0.1' },
-            port: { type: 'number', default: 9000 },
-            address: { type: 'string', default: '/spacemouse' }
+            clientHost: { type: 'string', default: '127.0.0.1' },
+            clientPort: { type: 'number', default: 9000 },
+            clientEnabled: { type: 'boolean', default: true },
+            serverPort: { type: 'number', default: 9001 },
+            serverEnabled: { type: 'boolean', default: false }
           }
         },
         device_settings: {
           type: 'object',
           properties: {
             sensitivity: { type: 'number', default: 1.0 },
-            deadzone: { type: 'number', default: 0.1 }
+            deadzone: { type: 'number', default: 0.1 },
+            mode: { type: 'string', enum: ['aed', 'ad', 'xyz', 'xy', 'custom1', 'custom2', 'custom3'], default: 'xyz' }
           }
         }
       }
@@ -63,6 +66,8 @@ let OSCserverPort = 8000;      // Default value
 let oUDPport = 9000;  // Default value
 let validIpPort = true;
 let tray = null;
+let udpPort = null;  // Make it globally available
+let oscServer = null;
 
 // Default preferences
 const defaultPreferences = {
@@ -72,13 +77,16 @@ const defaultPreferences = {
     minimizeToTray: true
   },
   osc_settings: {
-    host: '127.0.0.1',
-    port: 9000,
-    address: '/spacemouse'
+    clientHost: '127.0.0.1',
+    clientPort: 9000,
+    clientEnabled: true,
+    serverPort: 9001,
+    serverEnabled: false
   },
   device_settings: {
     sensitivity: 1.0,
-    deadzone: 0.1
+    deadzone: 0.1,
+    mode: 'xyz'
   }
 };
 
@@ -86,20 +94,54 @@ const defaultPreferences = {
 ipcMain.on('getPreferences', (event) => {
   try {
     const prefs = store.get('preferences', defaultPreferences);
+    
+    // Ensure port values are numbers
+    if (prefs.osc_settings) {
+      if (prefs.osc_settings.clientPort) {
+        prefs.osc_settings.clientPort = parseInt(prefs.osc_settings.clientPort, 10);
+      }
+      if (prefs.osc_settings.serverPort) {
+        prefs.osc_settings.serverPort = parseInt(prefs.osc_settings.serverPort, 10);
+      }
+    }
+    
     event.returnValue = prefs;
   } catch (error) {
     log.error('Error getting preferences:', error);
-    event.returnValue = null;
+    event.returnValue = defaultPreferences;
   }
 });
 
 ipcMain.handle('updatePreferences', async (event, prefs) => {
   try {
-    store.set('preferences', prefs);
-    if (prefs.app_settings?.autostart !== undefined) {
-      await handleAutostart(prefs.app_settings.autostart);
+    // Validate and convert port values
+    if (prefs.osc_settings) {
+      if (prefs.osc_settings.clientPort) {
+        const clientPort = parseInt(prefs.osc_settings.clientPort, 10);
+        if (isNaN(clientPort) || clientPort < 1 || clientPort > 65535) {
+          throw new Error('Client port must be a number between 1 and 65535');
+        }
+        prefs.osc_settings.clientPort = clientPort;
+      }
+      
+      if (prefs.osc_settings.serverPort) {
+        const serverPort = parseInt(prefs.osc_settings.serverPort, 10);
+        if (isNaN(serverPort) || serverPort < 1 || serverPort > 65535) {
+          throw new Error('Server port must be a number between 1 and 65535');
+        }
+        prefs.osc_settings.serverPort = serverPort;
+      }
     }
+    
+    // Save preferences
+    store.set('preferences', prefs);
+    
+    // Notify renderer of successful save
     mainWindow?.webContents.send('preference-update', prefs);
+    
+    // Update OSC settings if needed
+    setupOSC();
+    
     return { success: true };
   } catch (error) {
     log.error('Error updating preferences:', error);
@@ -109,8 +151,33 @@ ipcMain.handle('updatePreferences', async (event, prefs) => {
 
 ipcMain.on('savePreferences', async (event, prefs) => {
   try {
+    // Validate and convert port values
+    if (prefs.osc_settings) {
+      if (prefs.osc_settings.clientPort) {
+        const clientPort = parseInt(prefs.osc_settings.clientPort, 10);
+        if (isNaN(clientPort) || clientPort < 1 || clientPort > 65535) {
+          throw new Error('Client port must be a number between 1 and 65535');
+        }
+        prefs.osc_settings.clientPort = clientPort;
+      }
+      
+      if (prefs.osc_settings.serverPort) {
+        const serverPort = parseInt(prefs.osc_settings.serverPort, 10);
+        if (isNaN(serverPort) || serverPort < 1 || serverPort > 65535) {
+          throw new Error('Server port must be a number between 1 and 65535');
+        }
+        prefs.osc_settings.serverPort = serverPort;
+      }
+    }
+    
+    // Save preferences
     store.set('preferences', prefs);
+    
+    // Notify renderer of successful save
     event.reply('preferences-saved', prefs);
+    
+    // Update OSC settings if needed
+    setupOSC();
   } catch (error) {
     log.error('Error saving preferences:', error);
     event.reply('error', error.message);
@@ -256,15 +323,13 @@ function createTray() {
   }
 }
 
-async function createWindow() {
-  try {
-    const icons = createAppIcon();
-    
+function createWindow() {
+  return new Promise((resolve) => {
     mainWindow = new BrowserWindow({
       width: 800,
       height: 600,
       autoHideMenuBar: true,
-      icon: icons ? icons.icon : undefined,
+      icon: createAppIcon() ? createAppIcon().icon : undefined,
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false
@@ -272,11 +337,11 @@ async function createWindow() {
     });
 
     // Set window icon explicitly for Linux
-    if (process.platform === 'linux' && icons) {
-      mainWindow.setIcon(icons.icon);
+    if (process.platform === 'linux' && createAppIcon()) {
+      mainWindow.setIcon(createAppIcon().icon);
       
       // Try setting it as a data URL as fallback
-      const dataUrl = icons.icon.toDataURL();
+      const dataUrl = createAppIcon().icon.toDataURL();
       mainWindow.setIcon(nativeImage.createFromDataURL(dataUrl));
     }
 
@@ -284,7 +349,7 @@ async function createWindow() {
     mainWindow.setMenu(null);
 
     // Load the index.html file
-    await mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
     // Handle window minimize
     mainWindow.on('minimize', (event) => {
@@ -306,12 +371,17 @@ async function createWindow() {
     // Handle window close
     mainWindow.on('close', handleWindowClose);
 
-    log.info('Main window created successfully');
-    return mainWindow;
-  } catch (error) {
-    log.error('Error creating main window:', error);
-    throw error;
-  }
+    mainWindow.webContents.on('did-finish-load', () => {
+      console.log('Main window created successfully');
+      log.info('Main window created successfully');
+      
+      // Initialize app after window is fully loaded
+      console.log('Initializing app...');
+      initializeApp();
+      
+      resolve(mainWindow);
+    });
+  });
 }
 
 function handleWindowClose(event) {
@@ -425,25 +495,55 @@ function initializePreferences() {
         form: {
           groups: [
             {
-              label: 'OSC Settings',
+              label: 'OSC Client Settings',
               fields: [
                 {
-                  label: 'Host',
-                  key: 'host',
+                  label: 'Target Host',
+                  key: 'clientHost',
                   type: 'text',
-                  help: 'OSC server host address'
+                  default: '127.0.0.1',
+                  help: 'Remote host address to send SpaceMouse data to'
                 },
                 {
-                  label: 'Port',
-                  key: 'port',
+                  label: 'Target Port',
+                  key: 'clientPort',
                   type: 'number',
-                  help: 'OSC server port'
+                  default: 9000,
+                  help: 'Remote port number to send SpaceMouse data to'
                 },
                 {
-                  label: 'Address',
-                  key: 'address',
-                  type: 'text',
-                  help: 'OSC message address'
+                  label: 'Client Enabled',
+                  key: 'clientEnabled',
+                  type: 'radio',
+                  options: [
+                    { label: 'Yes', value: true },
+                    { label: 'No', value: false }
+                  ],
+                  default: true,
+                  help: 'Enable/disable sending OSC messages'
+                }
+              ]
+            },
+            {
+              label: 'OSC Server Settings',
+              fields: [
+                {
+                  label: 'Listen Port',
+                  key: 'serverPort',
+                  type: 'number',
+                  default: 9001,
+                  help: 'Local port number to listen for incoming OSC messages'
+                },
+                {
+                  label: 'Server Enabled',
+                  key: 'serverEnabled',
+                  type: 'radio',
+                  options: [
+                    { label: 'Yes', value: true },
+                    { label: 'No', value: false }
+                  ],
+                  default: false,
+                  help: 'Enable/disable receiving OSC messages'
                 }
               ]
             }
@@ -470,6 +570,21 @@ function initializePreferences() {
                   key: 'deadzone',
                   type: 'number',
                   help: 'Minimum movement threshold'
+                },
+                {
+                  label: 'Mode',
+                  key: 'mode',
+                  type: 'radio',
+                  options: [
+                    { label: 'AED', value: 'aed' },
+                    { label: 'AD', value: 'ad' },
+                    { label: 'XYZ', value: 'xyz' },
+                    { label: 'XY', value: 'xy' },
+                    { label: 'Custom 1', value: 'custom1' },
+                    { label: 'Custom 2', value: 'custom2' },
+                    { label: 'Custom 3', value: 'custom3' }
+                  ],
+                  help: 'Choose device mode'
                 }
               ]
             }
@@ -553,8 +668,8 @@ function initializePreferences() {
 
     // Apply other settings as needed
     if (prefs.osc_settings) {
-      OSCserverIP = prefs.osc_settings.host || '127.0.0.1';
-      OSCserverPort = prefs.osc_settings.port || 9000;
+      OSCserverIP = prefs.osc_settings.clientHost || '127.0.0.1';
+      OSCserverPort = prefs.osc_settings.clientPort || 9000;
       if (mainWindow) {
         mainWindow.webContents.send('osc-settings-updated', prefs.osc_settings);
       }
@@ -573,33 +688,43 @@ function initializePreferences() {
 
 function setupHIDDevice() {
   try {
+    console.log('Setting up HID device...');
     const deviceSettings = store.get('preferences.device_settings');
+    console.log('Device settings:', deviceSettings);
+    
     spaceMice.options = deviceSettings;
+    console.log('Initializing spaceMice...');
     spaceMice.initialize();
 
     if (spaceMice.mice.length === 0) {
+      console.log('No SpaceMouse devices found');
       log.warn('No SpaceMouse devices found');
       return null;
     }
 
     // Set up data handler
     spaceMice.onData = (data) => {
-      if (mainWindow && mainWindow.webContents) {
-        mainWindow.webContents.send('spacemouse-data', {
-          translate: data.translate,
-          rotate: data.rotate,
-          buttons: data.buttons
-        });
-      }
+      try {
+        console.log('Received data from spaceMice:', data);
+        if (mainWindow && mainWindow.webContents) {
+          mainWindow.webContents.send('spacemouse-data', {
+            translate: data.translate,
+            rotate: data.rotate,
+            buttons: data.buttons
+          });
+        }
 
-      // Send OSC messages if configured
-      if (udpPort) {
-        const oscData = {
-          translate: data.translate,
-          rotate: data.rotate,
-          buttons: data.buttons
-        };
-        sendOSCData(oscData);
+        // Send OSC messages if configured
+        if (udpPort) {
+          sendOSCData({
+            translate: data.translate,
+            rotate: data.rotate,
+            buttons: data.buttons
+          });
+        }
+      } catch (error) {
+        console.error("Error handling SpaceMouse data:", error);
+        log.error("Error handling SpaceMouse data:", error);
       }
     };
 
@@ -613,54 +738,153 @@ function setupHIDDevice() {
 
 function setupOSC() {
   try {
-    if (!validIpPort) {
-      console.error('Invalid IP:Port configuration');
-      return;
+    const oscSettings = store.get('preferences.osc_settings', {
+      clientHost: '127.0.0.1',
+      clientPort: 9000,
+      clientEnabled: true,
+      serverPort: 9001,
+      serverEnabled: false
+    });
+
+    // Close existing connections if any
+    if (udpPort) {
+      udpPort.close();
     }
 
-    if (oscCli) {
-      oscCli.close();
+    // Set up OSC client if enabled
+    if (oscSettings.clientEnabled) {
+      udpPort = new osc.UDPPort({
+        localAddress: "0.0.0.0",
+        localPort: 0, // Let the OS assign a random port for sending
+        remoteAddress: oscSettings.clientHost,
+        remotePort: oscSettings.clientPort,
+        metadata: true
+      });
+
+      udpPort.on("ready", () => {
+        const localPort = udpPort.options.localPort;
+        console.log(`OSC client ready - sending to ${oscSettings.clientHost}:${oscSettings.clientPort} from local port ${localPort}`);
+        log.info(`OSC client ready - sending to ${oscSettings.clientHost}:${oscSettings.clientPort} from local port ${localPort}`);
+        if (mainWindow) {
+          mainWindow.webContents.send('osc-status', { 
+            type: 'client',
+            status: 'connected',
+            address: `${oscSettings.clientHost}:${oscSettings.clientPort}`
+          });
+        }
+      });
+
+      udpPort.on("error", (error) => {
+        console.error("OSC client error:", error);
+        log.error("OSC client error:", error);
+        if (mainWindow) {
+          mainWindow.webContents.send('osc-status', { 
+            type: 'client',
+            status: 'error',
+            message: error.message
+          });
+        }
+      });
+
+      udpPort.open();
     }
 
-    oscCli = new osc.UDPPort({
-      localAddress: "0.0.0.0",
-      localPort: oUDPport,
-      metadata: true
-    });
+    // Set up OSC server if enabled
+    if (oscSettings.serverEnabled) {
+      oscServer = new osc.UDPPort({
+        localAddress: '0.0.0.0',
+        localPort: oscSettings.serverPort,
+        metadata: true
+      });
 
-    oscCli.on("ready", () => {
-      mainWindow.webContents.send("logInfo", "OSC ready to listen on port " + oUDPport);
-    });
+      oscServer.on("ready", () => {
+        console.log(`OSC server ready - listening on ${oscSettings.serverPort}`);
+        log.info(`OSC server ready - listening on ${oscSettings.serverPort}`);
+        if (mainWindow) {
+          mainWindow.webContents.send('osc-status', { 
+            type: 'server',
+            status: 'listening',
+            address: `${oscSettings.serverPort}`
+          });
+        }
+      });
 
-    oscCli.on("error", (error) => {
-      console.error("OSC error:", error);
-      mainWindow.webContents.send("logInfo", "OSC error: " + error.message);
-      mainWindow.webContents.send("udpPortKO", error.message);
-    });
+      oscServer.on("message", (oscMsg, timeTag, info) => {
+        console.log("OSC message received:", oscMsg);
+        if (mainWindow) {
+          mainWindow.webContents.send('osc-message', {
+            address: oscMsg.address,
+            args: oscMsg.args,
+            source: `${info.address}:${info.port}`
+          });
+        }
+      });
 
-    oscCli.on("message", (oscBundle) => {
-      const oscAddress = oscBundle.address;
-      const oscArgs = oscBundle.args;
-      mainWindow.webContents.send("logInfo", oscAddress + " " + oscArgs[0].value);
-      if (oscAddress === "/spacemouse/mode") {
-        handleMode(oscArgs);
-      } else if (oscAddress === "/spacemouse/prefix") {
-        handlePrefix(oscArgs);
-      } else if (oscAddress === "/spacemouse/precision") {
-        handlePrecision(oscArgs);
-      } else if (oscAddress === "/spacemouse/factor") {
-        handleFactor(oscArgs);
-      } else if (oscAddress === "/spacemouse/sendRate") {
-        handleSendRate(oscArgs);
-      }
-    });
+      oscServer.on("error", (error) => {
+        console.error("OSC server error:", error);
+        log.error("OSC server error:", error);
+        if (mainWindow) {
+          mainWindow.webContents.send('osc-status', { 
+            type: 'server',
+            status: 'error',
+            message: error.message
+          });
+        }
+      });
 
-    oscCli.open();
+      oscServer.open();
+    }
+
   } catch (error) {
-    console.error('Error setting up OSC:', error);
-    if (mainWindow && mainWindow.webContents) {
-      mainWindow.webContents.send("logInfo", "Error setting up OSC: " + error.message);
+    console.error("Error setting up OSC:", error);
+    log.error("Error setting up OSC:", error);
+    if (mainWindow) {
+      mainWindow.webContents.send('osc-status', { 
+        status: 'error',
+        message: error.message
+      });
     }
+  }
+}
+
+function sendOSCData(data) {
+  if (!udpPort) return;
+
+  try {
+    // Send translation data
+    if (data.translate) {
+      udpPort.send({
+        address: "/spacemouse/translate",
+        args: [
+          { type: "f", value: data.translate.x },
+          { type: "f", value: data.translate.y },
+          { type: "f", value: data.translate.z }
+        ]
+      });
+    }
+
+    // Send rotation data
+    if (data.rotate) {
+      udpPort.send({
+        address: "/spacemouse/rotate",
+        args: [
+          { type: "f", value: data.rotate.x },
+          { type: "f", value: data.rotate.y },
+          { type: "f", value: data.rotate.z }
+        ]
+      });
+    }
+
+    // Send button states
+    if (data.buttons) {
+      udpPort.send({
+        address: "/spacemouse/buttons",
+        args: data.buttons.map(state => ({ type: "i", value: state ? 1 : 0 }))
+      });
+    }
+  } catch (error) {
+    console.error("Error sending OSC data:", error);
+    log.error("Error sending OSC data:", error);
   }
 }
 
@@ -774,16 +998,6 @@ app.on('activate', async () => {
 // IPC handlers
 ipcMain.on('show-preferences', () => {
   preferences.show();
-});
-
-ipcMain.on('getPreferences', (event) => {
-  const prefs = store.get('preferences', defaultPreferences);
-  event.reply('preferences-updated', prefs);
-});
-
-ipcMain.on('savePreferences', async (event, newPrefs) => {
-  store.set('preferences', newPrefs);
-  event.reply('preferences-saved', newPrefs);
 });
 
 ipcMain.on('matchingIpPort', () => {

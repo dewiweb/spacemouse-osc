@@ -83,18 +83,21 @@ class SpaceMouse {
      */
     _handleData(data) {
         try {
+            console.log('Received data from SpaceMouse:', data);
             switch (data[0]) {
                 case 1:
                     // Update translation values for x, y, and z axes
                     this.translate.x = this._applySettings(joinInt16(data[1], data[2]) / 350);
                     this.translate.y = this._applySettings(joinInt16(data[3], data[4]) / 350);
                     this.translate.z = this._applySettings(joinInt16(data[5], data[6]) / 350);
+                    console.log('Translation update:', this.translate);
                     break;
                 case 2:
                     // Update rotation values for x, y, and z axes
                     this.rotate.x = this._applySettings(joinInt16(data[1], data[2]) / 350);
                     this.rotate.y = this._applySettings(joinInt16(data[3], data[4]) / 350);
                     this.rotate.z = this._applySettings(joinInt16(data[5], data[6]) / 350);
+                    console.log('Rotation update:', this.rotate);
                     break;
                 case 3:
                     // Update button states
@@ -166,25 +169,35 @@ class SpaceMiceManager {
      */
     initialize() {
         try {
-            const devices = HID.devices().filter(device => 
+            console.log('Starting SpaceMouse initialization...');
+            const allDevices = HID.devices();
+            console.log('All HID devices found:', JSON.stringify(allDevices, null, 2));
+
+            const devices = allDevices.filter(device => 
                 device.vendorId === 0x256F || // 3Dconnexion vendor ID
                 device.manufacturer === '3Dconnexion'
             );
 
+            console.log('Filtered SpaceMouse devices:', JSON.stringify(devices, null, 2));
             log.info('Found SpaceMouse devices:', devices);
 
             this.mice = devices.map(device => {
                 try {
+                    console.log('Attempting to initialize device:', device.path);
                     const hidDevice = new HID.HID(device.path);
+                    console.log('Successfully created HID device');
                     return new SpaceMouse(hidDevice, this.options);
                 } catch (error) {
+                    console.error(`Error initializing SpaceMouse device ${device.path}:`, error);
                     log.error(`Error initializing SpaceMouse device ${device.path}:`, error);
                     return null;
                 }
             }).filter(Boolean);
 
+            console.log('Number of successfully initialized mice:', this.mice.length);
             this._setupEventListeners();
         } catch (error) {
+            console.error('Error in SpaceMice initialization:', error);
             log.error('Error initializing SpaceMice:', error);
         }
     }
