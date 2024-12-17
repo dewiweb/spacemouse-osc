@@ -1,188 +1,606 @@
 const electron = require('electron');
-const { app, BrowserWindow, ipcMain, dialog, nativeTheme, Tray, Menu, nativeImage } = require('electron');
-const ElectronPreferences = require("electron-preferences");
+const { app, BrowserWindow, ipcMain, dialog, nativeTheme, Tray, Menu, nativeImage } = electron;
 const fs = require("fs");
 const log = require("electron-log");
 const path = require("path");
-const Store = require('electron-store');
 const osc = require("osc");
-const { spaceMice } = require('./lib');
-
-// Initialize electron store with schema
-const store = new Store({
-  schema: {
-    preferences: {
-      type: 'object',
-      properties: {
-        app_settings: {
-          type: 'object',
-          properties: {
-            theme: { type: 'string', enum: ['dark', 'light'], default: 'dark' },
-            autostart: { type: 'boolean', default: false },
-            minimizeToTray: { type: 'boolean', default: true }
-          },
-          default: {
-            theme: 'dark',
-            autostart: false,
-            minimizeToTray: true
-          }
-        },
-        osc_settings: {
-          type: 'object',
-          properties: {
-            clientHost: { type: 'string', default: '127.0.0.1' },
-            clientPort: { type: 'number', default: 9000 },
-            clientEnabled: { type: 'boolean', default: true },
-            serverPort: { type: 'number', default: 9001 },
-            serverEnabled: { type: 'boolean', default: false }
-          }
-        },
-        device_settings: {
-          type: 'object',
-          properties: {
-            sensitivity: { type: 'number', default: 1.0 },
-            deadzone: { type: 'number', default: 0.1 },
-            mode: { type: 'string', enum: ['aed', 'ad', 'xyz', 'xy', 'custom1', 'custom2', 'custom3'], default: 'xyz' }
-          }
-        }
-      }
-    }
-  }
-});
+const { SpaceMouse, SpaceMiceManager } = require('./lib');
+const utils = require('./utils');
+const ElectronPreferences = require('electron-preferences');
 
 // Configure logging
-log.transports.file.level = "debug";
+log.transports.file.level = 'info';
+log.transports.console.level = 'info';
+
+// Forward logs to renderer
+function sendLogToRenderer(level, ...args) {
+  if (mainWindow && mainWindow.webContents) {
+    mainWindow.webContents.send('log-message', {
+      level,
+      message: args.join(' '),
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
+// Set up log forwarding
+log.hooks.push((message, transport) => {
+  if (transport !== log.transports.file) {
+    return message;
+  }
+  sendLogToRenderer(message.level, message.data.join(' '));
+  return message;
+});
 
 // Global references
 let mainWindow = null;
-let preferences = null;
-let oscCli = null;
 let device = null;
 let sendInterval = null;
 let defaultDir = null;
 let appVersion = null;
 let OSCserverIP = "127.0.0.1";  // Default value
-let OSCserverPort = 8000;      // Default value
-let oUDPport = 9000;  // Default value
+let OSCserverPort = 9000;      // Default value
+let oUDPport = 12000;  // Default value
 let validIpPort = true;
 let tray = null;
 let udpPort = null;  // Make it globally available
 let oscServer = null;
+let spaceMiceManager = null;
 
-// Default preferences
-const defaultPreferences = {
-  app_settings: {
-    theme: 'dark',
-    autostart: false,
-    minimizeToTray: true
-  },
-  osc_settings: {
-    clientHost: '127.0.0.1',
-    clientPort: 9000,
-    clientEnabled: true,
-    serverPort: 9001,
-    serverEnabled: false
-  },
-  device_settings: {
-    sensitivity: 1.0,
-    deadzone: 0.1,
-    mode: 'xyz'
+// Rate limiting variables
+let lastOSCSendTime = Date.now();
+let lastOSCData = null;
+
+// Get preferences helper
+function getPreference(section, key, defaultValue) {
+  try {
+    // Make sure preferences is initialized
+    if (!preferences || !preferences.preferences) {
+      return defaultValue;
+    }
+    return preferences.preferences[section]?.[key] ?? defaultValue;
+  } catch (error) {
+    log.error('Error getting preference:', error);
+    return defaultValue;
   }
+}
+
+// Set preferences helper
+function setPreference(section, key, value) {
+  try {
+    // Make sure preferences is initialized
+    if (!preferences || !preferences.preferences) {
+      preferences.preferences = {};
+    }
+    if (!preferences.preferences[section]) {
+      preferences.preferences[section] = {};
+    }
+    preferences.preferences[section][key] = value;
+    preferences.save();
+  } catch (error) {
+    log.error('Error setting preference:', error);
+  }
+}
+
+// Preferences configuration
+const preferences = new ElectronPreferences({
+    dataStore: path.resolve(app.getPath('userData'), 'preferences.json'),
+    defaults: {
+        app: {
+            theme: 'system',
+            autostart: false,
+            minimizeToTray: true
+        },
+        osc: {
+            serverIp: '127.0.0.1',
+            serverPort: 9000,
+            udpPort: 12000
+        },
+        device_settings: {
+            mode: 'aed',
+            sendRate: 33,
+            prefix: '/track',
+            index: 1,
+            precision: 'clear',
+            factor: 1
+        }
+    },
+    sections: [
+        {
+            id: 'app',
+            label: 'Application Settings',
+            icon: 'settings-gear-63',
+            form: {
+                groups: [
+                    {
+                        label: 'Application Behavior',
+                        fields: [
+                            {
+                                label: 'Theme',
+                                key: 'theme',
+                                type: 'dropdown',
+                                options: [
+                                    { label: 'System', value: 'system' },
+                                    { label: 'Dark', value: 'dark' },
+                                    { label: 'Light', value: 'light' }
+                                ],
+                                help: 'Choose the application theme'
+                            },
+                            {
+                                label: 'Start with Windows',
+                                key: 'autostart',
+                                type: 'checkbox',
+                                help: 'Launch application when Windows starts'
+                            },
+                            {
+                                label: 'Minimize to Tray',
+                                key: 'minimizeToTray',
+                                type: 'checkbox',
+                                help: 'Keep application running in system tray when closed'
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            id: 'osc',
+            label: 'OSC Settings',
+            icon: 'network-connection-wireless',
+            form: {
+                groups: [
+                    {
+                        label: 'Server Settings',
+                        fields: [
+                            {
+                                label: 'IP',
+                                key: 'serverIp',
+                                type: 'text',
+                                help: 'OSC server IP address'
+                            },
+                            {
+                                label: 'Port',
+                                key: 'serverPort',
+                                type: 'number',
+                                help: 'OSC server port number'
+                            },
+                            {
+                                label: 'UDP Port',
+                                key: 'udpPort',
+                                type: 'number',
+                                help: 'UDP port number'
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            id: 'device_settings',
+            label: 'Device Settings',
+            icon: 'mouse',
+            form: {
+                groups: [
+                    {
+                        label: 'SpaceMouse Configuration',
+                        fields: [
+                            {
+                                label: 'Mode',
+                                key: 'mode',
+                                type: 'dropdown',
+                                options: [
+                                    { label: 'AED', value: 'aed' },
+                                    { label: 'AD', value: 'ad' },
+                                    { label: 'XYZ', value: 'xyz' },
+                                    { label: 'XY', value: 'xy' },
+                                    { label: 'Custom1', value: 'custom1' },
+                                    { label: 'Custom2', value: 'custom2' },
+                                    { label: 'Custom3', value: 'custom3' }
+                                ],
+                                help: 'Device operation mode'
+                            },
+                            {
+                                label: 'OSC Prefix',
+                                key: 'prefix',
+                                type: 'text',
+                                help: 'OSC message prefix'
+                            },
+                            {
+                                label: 'Index',
+                                key: 'index',
+                                type: 'number',
+                                help: 'Device index number',
+                                min: 1,
+                                step: 1
+                            },
+                            {
+                                label: 'Precision',
+                                key: 'precision',
+                                type: 'dropdown',
+                                options: [
+                                    { label: 'Clear', value: 'clear' },
+                                    { label: '1/100000', value: '100000' },
+                                    { label: '1/1000', value: '1000' },
+                                    { label: '1/100', value: '100' },
+                                    { label: '1/10', value: '10' },
+                                    { label: '1', value: '1' }
+                                ],
+                                help: 'Value precision'
+                            },
+                            {
+                                label: 'Factor',
+                                key: 'factor',
+                                type: 'number',
+                                help: 'Scaling factor',
+                                min: 0.1,
+                                step: 0.1
+                            },
+                            {
+                                label: 'Send Rate',
+                                key: 'sendRate',
+                                type: 'number',
+                                help: 'Data send rate (1 to 100)',
+                                min: 1,
+                                max: 100,
+                                step: 1
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+});
+
+// Handle preferences changes
+preferences.on('save', (preferences) => {
+    log.info('Preferences updated:', preferences);
+    
+    // Apply app settings
+    if (preferences.app) {
+        handleAutostart(preferences.app.autostart);
+        nativeTheme.themeSource = preferences.app.theme;
+    }
+    
+    // Apply OSC settings
+    if (preferences.osc) {
+        OSCserverIP = preferences.osc.serverIp;
+        OSCserverPort = preferences.osc.serverPort;
+        oUDPport = preferences.osc.udpPort;
+        setupOSC();
+    }
+    
+    // Apply device settings
+    if (preferences.device_settings && spaceMiceManager) {
+        const settings = preferences.device_settings;
+        spaceMiceManager.options.mode = settings.mode;
+        spaceMiceManager.options.prefix = settings.prefix;
+        spaceMiceManager.options.index = settings.index;
+        spaceMiceManager.options.precision = settings.precision;
+        spaceMiceManager.options.factor = settings.factor;
+        spaceMiceManager.options.sendRate = Number(settings.sendRate);
+    }
+
+    // Notify renderer of preference changes
+    if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send('preferences-updated', preferences);
+    }
+});
+
+// IPC handlers
+ipcMain.handle('getPreferences', () => {
+  return preferences.preferences;
+});
+
+ipcMain.on('mode-change', (event, mode) => {
+  log.info('Mode change received:', mode);
+  setPreference('device_settings', 'mode', mode);
+  if (spaceMiceManager) {
+    spaceMiceManager.options.mode = mode;
+  }
+});
+
+ipcMain.on('prefix-change', (event, prefix) => {
+  log.info('Prefix change received:', prefix);
+  setPreference('device_settings', 'prefix', prefix);
+  if (spaceMiceManager) {
+    spaceMiceManager.options.prefix = prefix;
+  }
+});
+
+ipcMain.on('index-change', (event, index) => {
+  log.info('Index change received:', index);
+  setPreference('device_settings', 'index', index);
+  if (spaceMiceManager) {
+    spaceMiceManager.options.index = index;
+  }
+});
+
+ipcMain.on('precision-change', (event, precision) => {
+  log.info('Precision change received:', precision);
+  setPreference('device_settings', 'precision', precision);
+  if (spaceMiceManager) {
+    spaceMiceManager.options.precision = precision;
+  }
+});
+
+ipcMain.on('factor-change', (event, factor) => {
+  log.info('Factor change received:', factor);
+  setPreference('device_settings', 'factor', factor);
+  if (spaceMiceManager) {
+    spaceMiceManager.options.factor = factor;
+  }
+});
+
+ipcMain.on('sendRate-change', (event, rate) => {
+    log.info('Send rate change received:', rate);
+    const numericRate = Number(rate);
+    if (!isNaN(numericRate) && numericRate >= 1 && numericRate <= 100) {
+        // Update preferences
+        setPreference('device_settings', 'sendRate', numericRate);
+        
+        // Update spaceMiceManager if available
+        if (spaceMiceManager) {
+            spaceMiceManager.options.sendRate = numericRate;
+        }
+        
+        // Notify renderer to update UI
+        if (mainWindow && mainWindow.webContents) {
+            mainWindow.webContents.send('preferences-updated', preferences.preferences);
+        }
+    } else {
+        log.warn('Invalid send rate value:', rate);
+    }
+});
+
+ipcMain.on('show-preferences', () => {
+    preferences.show();
+});
+
+ipcMain.on('log-info', (event, ...args) => {
+  log.info(...args);
+});
+
+ipcMain.on('log-error', (event, ...args) => {
+  log.error(...args);
+});
+
+ipcMain.on('log-warn', (event, ...args) => {
+  log.warn(...args);
+});
+
+ipcMain.on('log-debug', (event, ...args) => {
+  log.debug(...args);
+});
+
+ipcMain.on('matchingIpPort', () => {
+  validIpPort = true;
+});
+
+ipcMain.on('notMatchingIpPort', () => {
+  validIpPort = false;
+});
+
+ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value) => {
+  if (!oscCli) {
+    console.error('OSC client not initialized');
+    return;
+  }
+
+  if (index_or_not === "visible") {
+    oscCli.send({
+      address: prefix + "/" + index + "/" + attr,
+      args: [{
+        type: "f",
+        value: parseFloat(value)
+      }]
+    }, OSCserverIP, OSCserverPort);
+    
+    mainWindow.webContents.send("logInfo", 
+      `${prefix}/${index}/${attr} ${value} sent to ${OSCserverIP}:${OSCserverPort}`);
+  } else {
+    oscCli.send({
+      address: prefix + "/" + attr,
+      args: [{
+        type: "f",
+        value: parseFloat(value)
+      }]
+    }, OSCserverIP, OSCserverPort);
+    
+    mainWindow.webContents.send("logInfo", 
+      `${prefix}${attr} ${value} sent to ${OSCserverIP}:${OSCserverPort}`);
+  }
+});
+
+ipcMain.on("sendOscServerIp", (event, oServerIP) => {
+  OSCserverIP = oServerIP;
+});
+
+ipcMain.on("sendOscServerPort", (event, oServerPort) => {
+  OSCserverPort = oServerPort;
+  mainWindow.webContents.send("oServerOK");
+});
+
+ipcMain.on("sendRateChange", (event, rate) => {
+  sendFrequency = 100 / rate;
+});
+
+ipcMain.on('resize-window', (event, { height }) => {
+  if (mainWindow) {
+    const [width] = mainWindow.getSize();
+    mainWindow.setSize(width, height);
+  }
+});
+
+ipcMain.on('bypass-button-pressed', (event, data) => {
+    if (data && typeof data.id === 'number' && typeof data.state === 'boolean') {
+        log.info('Bypass button pressed:', data);
+        mainWindow.webContents.send('bypass-state-changed', data);
+    } else {
+        log.warn('Invalid bypass button data:', data);
+    }
+});
+
+ipcMain.on('spacemouse-button', (event, { button, state }) => {
+    log.info('SpaceMouse button:', { button, state });
+    // Only handle SpaceMouse button events, do not affect bypass state
+});
+
+ipcMain.on('spacemouse-data-with-paths', (event, data) => {
+    try {
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid data structure');
+        }
+
+        // Get current sendRate from preferences
+        const sendRate = Number(getPreference('device_settings', 'sendRate', 33));
+
+        // Check if we should send based on rate limiting
+        if (!shouldSendOSCMessage(sendRate)) {
+            return;
+        }
+
+        // Format data with current parameters (factor, etc.)
+        const formattedData = formatDataWithParameters(data);
+
+        // Send translation data only for paths that are present (visible fields)
+        if (formattedData.translation) {
+            Object.entries(formattedData.translation).forEach(([path, value]) => {
+                if (path) { // Only send if path exists (field is visible)
+                    udpPort.send({
+                        address: path,
+                        args: [
+                            {
+                                type: 'f',
+                                value: value
+                            }
+                        ]
+                    });
+                }
+            });
+        }
+
+        // Send rotation data only for paths that are present (visible fields)
+        if (formattedData.rotation) {
+            Object.entries(formattedData.rotation).forEach(([path, value]) => {
+                if (path) { // Only send if path exists (field is visible)
+                    udpPort.send({
+                        address: path,
+                        args: [
+                            {
+                                type: 'f',
+                                value: value
+                            }
+                        ]
+                    });
+                }
+            });
+        }
+
+        // Log data occasionally for debugging
+        if (Math.random() < 0.001) {
+            console.log('Sent OSC messages for formatted data:', {
+                formattedData,
+                sendRate
+            });
+        }
+    } catch (error) {
+        console.error('Error processing SpaceMouse data:', error);
+    }
+});
+
+// Store current OSC paths
+let currentOSCPaths = {
+    translation: {},
+    rotation: {}
 };
 
-// Handle IPC events
-ipcMain.on('getPreferences', (event) => {
-  try {
-    const prefs = store.get('preferences', defaultPreferences);
-    
-    // Ensure port values are numbers
-    if (prefs.osc_settings) {
-      if (prefs.osc_settings.clientPort) {
-        prefs.osc_settings.clientPort = parseInt(prefs.osc_settings.clientPort, 10);
-      }
-      if (prefs.osc_settings.serverPort) {
-        prefs.osc_settings.serverPort = parseInt(prefs.osc_settings.serverPort, 10);
-      }
+// Handle OSC path updates
+ipcMain.on('update-osc-paths', (event, paths) => {
+    try {
+        if (!paths || typeof paths !== 'object') {
+            throw new Error('Invalid paths structure');
+        }
+
+        // Store the paths for future use
+        currentOSCPaths = paths;
+
+        // Log path update occasionally
+        if (Math.random() < 0.1) {
+            log.info('Updated OSC paths:', paths);
+        }
+    } catch (error) {
+        log.error('Error updating OSC paths:', error);
     }
-    
-    event.returnValue = prefs;
-  } catch (error) {
-    log.error('Error getting preferences:', error);
-    event.returnValue = defaultPreferences;
-  }
 });
 
-ipcMain.handle('updatePreferences', async (event, prefs) => {
-  try {
-    // Validate and convert port values
-    if (prefs.osc_settings) {
-      if (prefs.osc_settings.clientPort) {
-        const clientPort = parseInt(prefs.osc_settings.clientPort, 10);
-        if (isNaN(clientPort) || clientPort < 1 || clientPort > 65535) {
-          throw new Error('Client port must be a number between 1 and 65535');
-        }
-        prefs.osc_settings.clientPort = clientPort;
-      }
-      
-      if (prefs.osc_settings.serverPort) {
-        const serverPort = parseInt(prefs.osc_settings.serverPort, 10);
-        if (isNaN(serverPort) || serverPort < 1 || serverPort > 65535) {
-          throw new Error('Server port must be a number between 1 and 65535');
-        }
-        prefs.osc_settings.serverPort = serverPort;
-      }
-    }
-    
-    // Save preferences
-    store.set('preferences', prefs);
-    
-    // Notify renderer of successful save
-    mainWindow?.webContents.send('preference-update', prefs);
-    
-    // Update OSC settings if needed
-    setupOSC();
-    
-    return { success: true };
-  } catch (error) {
-    log.error('Error updating preferences:', error);
-    return { success: false, error: error.message };
-  }
-});
+// Format data with parameters
+function formatDataWithParameters(data) {
+    const mode = getPreference('device_settings', 'mode', 'aed');
+    const factor = parseFloat(getPreference('device_settings', 'factor', 1));
+    const precision = getPreference('device_settings', 'precision', 'clear');
+    const prefix = getPreference('device_settings', 'prefix', '/track');
+    const index = getPreference('device_settings', 'index', 1);
 
-ipcMain.on('savePreferences', async (event, prefs) => {
-  try {
-    // Validate and convert port values
-    if (prefs.osc_settings) {
-      if (prefs.osc_settings.clientPort) {
-        const clientPort = parseInt(prefs.osc_settings.clientPort, 10);
-        if (isNaN(clientPort) || clientPort < 1 || clientPort > 65535) {
-          throw new Error('Client port must be a number between 1 and 65535');
-        }
-        prefs.osc_settings.clientPort = clientPort;
-      }
-      
-      if (prefs.osc_settings.serverPort) {
-        const serverPort = parseInt(prefs.osc_settings.serverPort, 10);
-        if (isNaN(serverPort) || serverPort < 1 || serverPort > 65535) {
-          throw new Error('Server port must be a number between 1 and 65535');
-        }
-        prefs.osc_settings.serverPort = serverPort;
-      }
+    if (!data || !data.translation || !data.rotation || !data.paths) {
+        throw new Error('Invalid data structure');
     }
+
+    // Apply factor to all values
+    const translation = {
+        x: data.translation.x * factor,
+        y: data.translation.y * factor,
+        z: data.translation.z * factor
+    };
+
+    const rotation = {
+        x: data.rotation.x * factor,
+        y: data.rotation.y * factor,
+        z: data.rotation.z * factor
+    };
+
+    // Format the data according to paths
+    const formattedData = {
+        translation: {},
+        rotation: {}
+    };
+
+    // Add translation paths
+    const trPaths = data.paths.translation || {};
+    Object.entries(trPaths).forEach(([axis, path]) => {
+        if (translation[axis] !== undefined) {
+            formattedData.translation[path] = translation[axis];
+        }
+    });
+
+    // Add rotation paths
+    const rotPaths = data.paths.rotation || {};
+    Object.entries(rotPaths).forEach(([axis, path]) => {
+        if (rotation[axis] !== undefined) {
+            formattedData.rotation[path] = rotation[axis];
+        }
+    });
+
+    return formattedData;
+}
+
+function calculateMessageInterval(sendRate) {
+    // Base rate is assumed to be 100Hz (10ms interval)
+    const baseInterval = 10;
+    // Calculate actual interval based on send rate percentage
+    return Math.floor(baseInterval * (100 / sendRate));
+}
+
+function shouldSendOSCMessage(sendRate) {
+    const now = Date.now();
+    const interval = calculateMessageInterval(sendRate);
     
-    // Save preferences
-    store.set('preferences', prefs);
-    
-    // Notify renderer of successful save
-    event.reply('preferences-saved', prefs);
-    
-    // Update OSC settings if needed
-    setupOSC();
-  } catch (error) {
-    log.error('Error saving preferences:', error);
-    event.reply('error', error.message);
-  }
-});
+    if (now - lastOSCSendTime >= interval) {
+        lastOSCSendTime = now;
+        return true;
+    }
+    return false;
+}
 
 // Create application icon
 function createAppIcon() {
@@ -282,9 +700,9 @@ function createTray() {
       {
         label: 'Preferences',
         click: () => {
-          if (preferences) {
-            preferences.show();
-            preferences.focus();
+          if (preferencesWindow) {
+            preferencesWindow.show();
+            preferencesWindow.focus();
           }
         }
       },
@@ -323,45 +741,49 @@ function createTray() {
   }
 }
 
-function createWindow() {
-  return new Promise((resolve) => {
+async function createWindow() {
+  try {
     mainWindow = new BrowserWindow({
       width: 800,
       height: 600,
-      autoHideMenuBar: true,
-      icon: createAppIcon() ? createAppIcon().icon : undefined,
       webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.resolve(__dirname, 'preload.js'),
+        sandbox: false
       }
     });
 
-    // Set window icon explicitly for Linux
-    if (process.platform === 'linux' && createAppIcon()) {
-      mainWindow.setIcon(createAppIcon().icon);
-      
-      // Try setting it as a data URL as fallback
-      const dataUrl = createAppIcon().icon.toDataURL();
-      mainWindow.setIcon(nativeImage.createFromDataURL(dataUrl));
-    }
+    // Set proper Content Security Policy
+    mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            "default-src 'self'; " +
+            "script-src 'self' 'unsafe-hashes'; " +
+            "style-src 'self' 'unsafe-inline'; " +
+            "img-src 'self' data:; " +
+            "font-src 'self' data:;"
+          ]
+        }
+      });
+    });
 
-    // Remove menu completely
-    mainWindow.setMenu(null);
-
-    // Load the index.html file
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
+
+    // Set up window event handlers
+    mainWindow.on('closed', () => {
+      mainWindow = null;
+    });
 
     // Handle window minimize
     mainWindow.on('minimize', (event) => {
       try {
-        const minimizeToTray = store.get('preferences.app_settings.minimizeToTray', true);
+        const minimizeToTray = app.getLoginItemSettings().minimizeToTray;
         if (minimizeToTray) {
           event.preventDefault();
           mainWindow.hide();
-          // Ensure tray exists when minimizing
-          if (!tray) {
-            createTray();
-          }
         }
       } catch (error) {
         log.error('Error handling window minimize:', error);
@@ -371,23 +793,22 @@ function createWindow() {
     // Handle window close
     mainWindow.on('close', handleWindowClose);
 
-    mainWindow.webContents.on('did-finish-load', () => {
-      console.log('Main window created successfully');
-      log.info('Main window created successfully');
-      
-      // Initialize app after window is fully loaded
-      console.log('Initializing app...');
-      initializeApp();
-      
-      resolve(mainWindow);
-    });
-  });
+    // Open dev tools in development mode
+    if (process.env.NODE_ENV === 'development') {
+      mainWindow.webContents.openDevTools();
+    }
+
+    return mainWindow;
+  } catch (error) {
+    log.error('Error creating window:', error);
+    throw error;
+  }
 }
 
 function handleWindowClose(event) {
   try {
     if (!app.isQuitting) {
-      const minimizeToTray = store.get('preferences.app_settings.minimizeToTray', true);
+      const minimizeToTray = app.getLoginItemSettings().minimizeToTray;
       if (minimizeToTray) {
         event.preventDefault();
         mainWindow.hide();
@@ -421,641 +842,168 @@ function handleAutostart(enabled) {
   }
 }
 
-function initializePreferences() {
-  // Get current preferences or use defaults
-  const currentPrefs = store.get('preferences', defaultPreferences);
-
-  preferences = new ElectronPreferences({
-    dataStore: path.resolve(app.getPath('userData'), 'preferences.json'),
-    defaults: currentPrefs,
-    debug: process.env.NODE_ENV === 'development',
-    css: 'src/preferences.css',
-    browserWindowOpts: {
-      title: 'SpaceMouse OSC Preferences',
-      width: 800,
-      height: 600,
-      resizable: true,
-      maximizable: false,
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
-        devTools: process.env.NODE_ENV === 'development'
-      },
-      backgroundColor: '#2e3440'
-    },
-    sections: [
-      {
-        id: 'app_settings',
-        label: 'Application',
-        icon: 'settings-gear-63',
-        form: {
-          groups: [
-            {
-              label: 'Application Settings',
-              fields: [
-                {
-                  label: 'Theme',
-                  key: 'theme',
-                  type: 'radio',
-                  options: [
-                    { label: 'Dark Theme', value: 'dark' },
-                    { label: 'Light Theme', value: 'light' }
-                  ],
-                  help: 'Choose between dark and light theme'
-                },
-                {
-                  label: 'Auto Start',
-                  key: 'autostart',
-                  type: 'radio',
-                  options: [
-                    { label: 'Yes', value: true },
-                    { label: 'No', value: false }
-                  ],
-                  help: 'Start application on system startup'
-                },
-                {
-                  label: 'Minimize to Tray',
-                  key: 'minimizeToTray',
-                  type: 'radio',
-                  options: [
-                    { label: 'Yes', value: true },
-                    { label: 'No', value: false }
-                  ],
-                  help: 'Minimize to system tray instead of closing'
-                }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        id: 'osc_settings',
-        label: 'OSC',
-        icon: 'vector',
-        form: {
-          groups: [
-            {
-              label: 'OSC Client Settings',
-              fields: [
-                {
-                  label: 'Target Host',
-                  key: 'clientHost',
-                  type: 'text',
-                  default: '127.0.0.1',
-                  help: 'Remote host address to send SpaceMouse data to'
-                },
-                {
-                  label: 'Target Port',
-                  key: 'clientPort',
-                  type: 'number',
-                  default: 9000,
-                  help: 'Remote port number to send SpaceMouse data to'
-                },
-                {
-                  label: 'Client Enabled',
-                  key: 'clientEnabled',
-                  type: 'radio',
-                  options: [
-                    { label: 'Yes', value: true },
-                    { label: 'No', value: false }
-                  ],
-                  default: true,
-                  help: 'Enable/disable sending OSC messages'
-                }
-              ]
-            },
-            {
-              label: 'OSC Server Settings',
-              fields: [
-                {
-                  label: 'Listen Port',
-                  key: 'serverPort',
-                  type: 'number',
-                  default: 9001,
-                  help: 'Local port number to listen for incoming OSC messages'
-                },
-                {
-                  label: 'Server Enabled',
-                  key: 'serverEnabled',
-                  type: 'radio',
-                  options: [
-                    { label: 'Yes', value: true },
-                    { label: 'No', value: false }
-                  ],
-                  default: false,
-                  help: 'Enable/disable receiving OSC messages'
-                }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        id: 'device_settings',
-        label: 'Device',
-        icon: 'compass-05',
-        form: {
-          groups: [
-            {
-              label: 'Device Settings',
-              fields: [
-                {
-                  label: 'Sensitivity',
-                  key: 'sensitivity',
-                  type: 'number',
-                  help: 'Movement sensitivity multiplier'
-                },
-                {
-                  label: 'Deadzone',
-                  key: 'deadzone',
-                  type: 'number',
-                  help: 'Minimum movement threshold'
-                },
-                {
-                  label: 'Mode',
-                  key: 'mode',
-                  type: 'radio',
-                  options: [
-                    { label: 'AED', value: 'aed' },
-                    { label: 'AD', value: 'ad' },
-                    { label: 'XYZ', value: 'xyz' },
-                    { label: 'XY', value: 'xy' },
-                    { label: 'Custom 1', value: 'custom1' },
-                    { label: 'Custom 2', value: 'custom2' },
-                    { label: 'Custom 3', value: 'custom3' }
-                  ],
-                  help: 'Choose device mode'
-                }
-              ]
-            }
-          ]
-        }
-      }
-    ]
-  });
-
-  // Handle window creation
-  preferences.on('ready', () => {
-    const systemTheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
-    console.log('Preferences window ready, using system theme:', systemTheme);
-
-    // Apply current preferences
-    const currentPrefs = store.get('preferences', defaultPreferences);
-    preferences.preferences = currentPrefs;
-
-    // Set initial theme class
-    preferences.window.webContents.executeJavaScript(`
-      document.documentElement.className = 'theme-${systemTheme}';
-      document.body.className = 'theme-${systemTheme}';
-      console.log('Theme set to:', {
-        htmlClass: document.documentElement.className,
-        bodyClass: document.body.className,
-        preferences: ${JSON.stringify(currentPrefs)}
-      });
-    `);
-
-    // Only open DevTools in development mode
-    if (process.env.NODE_ENV === 'development') {
-      preferences.window.webContents.openDevTools({ mode: 'detach' });
-    }
-  });
-
-  // Listen for system theme changes
-  nativeTheme.on('updated', () => {
-    const systemTheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
-    console.log('System theme changed to:', systemTheme);
-
-    if (preferences.window) {
-      preferences.window.webContents.executeJavaScript(`
-        document.documentElement.className = 'theme-${systemTheme}';
-        document.body.className = 'theme-${systemTheme}';
-        console.log('Theme updated:', {
-          htmlClass: document.documentElement.className,
-          bodyClass: document.body.className
-        });
-      `);
-    }
-  });
-
-  // Listen for preference changes
-  preferences.on('save', (prefs) => {
-    console.log('Preferences saved:', prefs);
-    
-    // Update store
-    store.set('preferences', prefs);
-
-    // Update theme in main window if changed
-    const theme = prefs.app_settings?.theme || 'dark';
-    if (mainWindow) {
-      mainWindow.webContents.send('update-theme', theme);
-      // Update theme in renderer process
-      mainWindow.webContents.executeJavaScript(`
-        document.documentElement.className = 'theme-${theme}';
-        document.body.className = 'theme-${theme}';
-        // Update visualizer grid theme
-        const visualizers = document.querySelectorAll('.visualizer');
-        visualizers.forEach(v => {
-          v.className = v.className.replace(/theme-\\w+/, '');
-          v.className += ' theme-${theme}';
-        });
-      `);
-    }
-
-    // Handle autostart setting
-    if (prefs.app_settings?.autostart !== undefined) {
-      handleAutostart(prefs.app_settings.autostart);
-    }
-
-    // Apply other settings as needed
-    if (prefs.osc_settings) {
-      OSCserverIP = prefs.osc_settings.clientHost || '127.0.0.1';
-      OSCserverPort = prefs.osc_settings.clientPort || 9000;
-      if (mainWindow) {
-        mainWindow.webContents.send('osc-settings-updated', prefs.osc_settings);
-      }
-    }
-
-    if (prefs.device_settings) {
-      // Apply device settings
-      if (mainWindow) {
-        mainWindow.webContents.send('device-settings-updated', prefs.device_settings);
-      }
-    }
-  });
-
-  return preferences;
-}
-
 function setupHIDDevice() {
   try {
-    console.log('Setting up HID device...');
-    const deviceSettings = store.get('preferences.device_settings');
-    console.log('Device settings:', deviceSettings);
+    // Get device settings from preferences
+    const mode = getPreference('device_settings', 'mode', 'aed');
+    const sendRate = getPreference('device_settings', 'sendRate', 33);
+    const prefix = getPreference('device_settings', 'prefix', '/track');
+    const index = getPreference('device_settings', 'index', 1);
+    const precision = getPreference('device_settings', 'precision', 'clear');
+    const factor = parseFloat(getPreference('device_settings', 'factor', 1));
+
+    // Initialize SpaceMice manager with options
+    spaceMiceManager = new SpaceMiceManager();
+    spaceMiceManager.options = {
+      mode,
+      sendRate,
+      prefix,
+      index,
+      precision,
+      factor
+    };
+
+    // Initialize devices
+    spaceMiceManager.initialize();
     
-    spaceMice.options = deviceSettings;
-    console.log('Initializing spaceMice...');
-    spaceMice.initialize();
-
-    if (spaceMice.mice.length === 0) {
-      console.log('No SpaceMouse devices found');
+    // Check if any devices were found
+    if (spaceMiceManager.mice.length === 0) {
       log.warn('No SpaceMouse devices found');
-      return null;
+      return false;
     }
-
+    
+    log.info('Found SpaceMouse devices:', spaceMiceManager.mice);
+    
     // Set up data handler
-    spaceMice.onData = (data) => {
+    spaceMiceManager.onData = (data) => {
       try {
-        console.log('Received data from spaceMice:', data);
         if (mainWindow && mainWindow.webContents) {
-          mainWindow.webContents.send('spacemouse-data', {
-            translate: data.translate,
-            rotate: data.rotate,
-            buttons: data.buttons
-          });
-        }
+          // Format the data for the renderer
+          const formattedData = {
+            translation: {
+              x: data.translate?.x || 0,
+              y: data.translate?.y || 0,
+              z: data.translate?.z || 0
+            },
+            rotation: {
+              x: data.rotate?.x || 0,
+              y: data.rotate?.y || 0,
+              z: data.rotate?.z || 0
+            },
+            buttons: data.buttons || []
+          };
 
-        // Send OSC messages if configured
-        if (udpPort) {
-          sendOSCData({
-            translate: data.translate,
-            rotate: data.rotate,
-            buttons: data.buttons
-          });
+          // Send to renderer for UI update and path collection
+          mainWindow.webContents.send('spacemouse-data', formattedData);
         }
       } catch (error) {
-        console.error("Error handling SpaceMouse data:", error);
-        log.error("Error handling SpaceMouse data:", error);
+        log.error('Error handling spacemouse data:', error);
       }
     };
 
-    log.info('SpaceMouse devices initialized successfully');
-    return spaceMice;
+    // Store first device as our main device
+    device = spaceMiceManager.mice[0];
+
+    log.info('SpaceMouse device initialized successfully');
+    return true;
   } catch (error) {
     log.error('Error setting up SpaceMouse devices:', error);
-    return null;
+    return false;
   }
 }
 
 function setupOSC() {
   try {
-    const oscSettings = store.get('preferences.osc_settings', {
-      clientHost: '127.0.0.1',
-      clientPort: 9000,
-      clientEnabled: true,
-      serverPort: 9001,
-      serverEnabled: false
-    });
+    // Get OSC settings from preferences
+    const oscSettings = {
+      serverIp: getPreference('osc', 'serverIp', '127.0.0.1'),
+      serverPort: getPreference('osc', 'serverPort', 9000),
+      udpPort: getPreference('osc', 'udpPort', 12000)
+    };
 
     // Close existing connections if any
     if (udpPort) {
       udpPort.close();
     }
 
-    // Set up OSC client if enabled
-    if (oscSettings.clientEnabled) {
-      udpPort = new osc.UDPPort({
-        localAddress: "0.0.0.0",
-        localPort: 0, // Let the OS assign a random port for sending
-        remoteAddress: oscSettings.clientHost,
-        remotePort: oscSettings.clientPort,
-        metadata: true
-      });
+    // Create new UDP connection
+    udpPort = new osc.UDPPort({
+      localAddress: "0.0.0.0",
+      localPort: oscSettings.udpPort,
+      remoteAddress: oscSettings.serverIp,
+      remotePort: oscSettings.serverPort,
+      metadata: true
+    });
 
-      udpPort.on("ready", () => {
-        const localPort = udpPort.options.localPort;
-        console.log(`OSC client ready - sending to ${oscSettings.clientHost}:${oscSettings.clientPort} from local port ${localPort}`);
-        log.info(`OSC client ready - sending to ${oscSettings.clientHost}:${oscSettings.clientPort} from local port ${localPort}`);
-        if (mainWindow) {
-          mainWindow.webContents.send('osc-status', { 
-            type: 'client',
-            status: 'connected',
-            address: `${oscSettings.clientHost}:${oscSettings.clientPort}`
-          });
-        }
-      });
+    udpPort.on("ready", () => {
+      log.info(`OSC UDP Port ready on port ${oscSettings.udpPort}`);
+      log.info(`Sending to ${oscSettings.serverIp}:${oscSettings.serverPort}`);
+    });
 
-      udpPort.on("error", (error) => {
-        console.error("OSC client error:", error);
-        log.error("OSC client error:", error);
-        if (mainWindow) {
-          mainWindow.webContents.send('osc-status', { 
-            type: 'client',
-            status: 'error',
-            message: error.message
-          });
-        }
-      });
+    udpPort.on("error", (err) => {
+      log.error("OSC UDP Port error:", err);
+    });
 
-      udpPort.open();
-    }
-
-    // Set up OSC server if enabled
-    if (oscSettings.serverEnabled) {
-      oscServer = new osc.UDPPort({
-        localAddress: '0.0.0.0',
-        localPort: oscSettings.serverPort,
-        metadata: true
-      });
-
-      oscServer.on("ready", () => {
-        console.log(`OSC server ready - listening on ${oscSettings.serverPort}`);
-        log.info(`OSC server ready - listening on ${oscSettings.serverPort}`);
-        if (mainWindow) {
-          mainWindow.webContents.send('osc-status', { 
-            type: 'server',
-            status: 'listening',
-            address: `${oscSettings.serverPort}`
-          });
-        }
-      });
-
-      oscServer.on("message", (oscMsg, timeTag, info) => {
-        console.log("OSC message received:", oscMsg);
-        if (mainWindow) {
-          mainWindow.webContents.send('osc-message', {
-            address: oscMsg.address,
-            args: oscMsg.args,
-            source: `${info.address}:${info.port}`
-          });
-        }
-      });
-
-      oscServer.on("error", (error) => {
-        console.error("OSC server error:", error);
-        log.error("OSC server error:", error);
-        if (mainWindow) {
-          mainWindow.webContents.send('osc-status', { 
-            type: 'server',
-            status: 'error',
-            message: error.message
-          });
-        }
-      });
-
-      oscServer.open();
-    }
-
+    // Open the socket
+    udpPort.open();
+    log.info('OSC connection initialized successfully');
+    return true;
   } catch (error) {
-    console.error("Error setting up OSC:", error);
-    log.error("Error setting up OSC:", error);
-    if (mainWindow) {
-      mainWindow.webContents.send('osc-status', { 
-        status: 'error',
-        message: error.message
-      });
-    }
+    log.error('Error setting up OSC:', error);
+    return false;
   }
 }
 
-function sendOSCData(data) {
-  if (!udpPort) return;
-
+async function main() {
   try {
-    // Send translation data
-    if (data.translate) {
-      udpPort.send({
-        address: "/spacemouse/translate",
-        args: [
-          { type: "f", value: data.translate.x },
-          { type: "f", value: data.translate.y },
-          { type: "f", value: data.translate.z }
-        ]
-      });
-    }
+    // Create window and initialize app
+    mainWindow = await createWindow();
 
-    // Send rotation data
-    if (data.rotate) {
-      udpPort.send({
-        address: "/spacemouse/rotate",
-        args: [
-          { type: "f", value: data.rotate.x },
-          { type: "f", value: data.rotate.y },
-          { type: "f", value: data.rotate.z }
-        ]
-      });
-    }
-
-    // Send button states
-    if (data.buttons) {
-      udpPort.send({
-        address: "/spacemouse/buttons",
-        args: data.buttons.map(state => ({ type: "i", value: state ? 1 : 0 }))
-      });
-    }
-  } catch (error) {
-    console.error("Error sending OSC data:", error);
-    log.error("Error sending OSC data:", error);
-  }
-}
-
-function initializeApp() {
-  try {
-    // Get app version
-    appVersion = app.getVersion();
-    if (mainWindow && mainWindow.webContents) {
-      mainWindow.webContents.send("appVersion", appVersion);
-    }
-
-    // Create documents directory if it doesn't exist
-    defaultDir = path.join(app.getPath("documents"), "spacemouse-OSC");
-    if (!fs.existsSync(defaultDir)) {
-      fs.mkdirSync(defaultDir);
-    }
-
-    // Start the main process
-    main();
-  } catch (error) {
-    console.error('Error in initializeApp:', error);
-    dialog.showErrorBox('Initialization Error', error.message);
-  }
-}
-
-function main() {
-  try {
-    // Set up default preferences
-    if (preferences && preferences.value) {
-      handleMode([{ value: preferences.value("app_settings.default_mode") }]);
-      handlePrefix([{ value: preferences.value("app_settings.default_prefix") }]);
-      handlePrecision([{ value: preferences.value("app_settings.default_precision") }]);
-      handleFactor([{ value: preferences.value("app_settings.default_factor") }]);
-      handleSendRate([{ value: preferences.value("app_settings.default_send_rate") }]);
-    }
-
-    // Set up HID and OSC after window is ready
-    if (mainWindow && mainWindow.webContents) {
+    // Wait for window to be ready
+    mainWindow.webContents.on('did-finish-load', () => {
+      // Initialize app components
       setupHIDDevice();
       setupOSC();
-    }
-  } catch (error) {
-    console.error('Error in main:', error);
-    if (mainWindow && mainWindow.webContents) {
-      mainWindow.webContents.send("logInfo", "Error in main: " + error.message);
-    }
-  }
-}
 
-// App event handlers
-app.whenReady().then(async () => {
-  try {
-    // Create and set application icon
-    const icons = createAppIcon();
-    if (icons) {
-      // Set the app icon
-      app.dock?.setIcon(icons.icon); // For macOS
-      
-      // Set default window icon for Linux
-      if (process.platform === 'linux') {
-        app.commandLine.appendSwitch('force-app-icon', icons.icon);
-      }
-    }
-
-    // Create window and initialize preferences
-    mainWindow = await createWindow();
-    await initializePreferences();
+      // Set initial theme
+      const isDarkMode = nativeTheme.shouldUseDarkColors;
+      mainWindow.webContents.send('update-theme', isDarkMode ? 'dark' : 'light');
+    });
 
     // Create tray icon
     createTray();
 
     // Set initial autostart setting
-    const autostart = store.get('preferences.app_settings.autostart', false);
+    const autostart = app.getLoginItemSettings().openAtLogin;
     await handleAutostart(autostart);
 
     // Handle startup with --hidden flag
     if (process.argv.includes('--hidden')) {
       mainWindow.hide();
     }
+
   } catch (error) {
-    log.error('Error initializing app:', error);
+    log.error('Error in main:', error);
     app.quit();
   }
-}).catch(error => {
-  log.error('Error in app initialization:', error);
+}
+
+// Start the app
+app.whenReady().then(main).catch((error) => {
+  log.error('Failed to start app:', error);
   app.quit();
 });
 
-// Handle quit
-app.on('before-quit', () => {
-  app.isQuitting = true;
-});
-
+// Quit when all windows are closed
 app.on('window-all-closed', () => {
-  spaceMice.close();
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-app.on('activate', async () => {
-  if (!mainWindow) {
-    try {
-      await createWindow();
-    } catch (error) {
-      log.error('Error recreating window:', error);
-    }
-  }
-});
-
-// IPC handlers
-ipcMain.on('show-preferences', () => {
-  preferences.show();
-});
-
-ipcMain.on('matchingIpPort', () => {
-  validIpPort = true;
-});
-
-ipcMain.on('notMatchingIpPort', () => {
-  validIpPort = false;
-});
-
-ipcMain.on("ok_to_send", (event, prefix, index, index_or_not, attr, value) => {
-  if (!oscCli) {
-    console.error('OSC client not initialized');
-    return;
-  }
-
-  if (index_or_not === "visible") {
-    oscCli.send({
-      address: prefix + "/" + index + "/" + attr,
-      args: [{
-        type: "f",
-        value: parseFloat(value)
-      }]
-    }, OSCserverIP, OSCserverPort);
-    
-    mainWindow.webContents.send("logInfo", 
-      `${prefix}/${index}/${attr} ${value} sent to ${OSCserverIP}:${OSCserverPort}`);
-  } else {
-    oscCli.send({
-      address: prefix + "/" + attr,
-      args: [{
-        type: "f",
-        value: parseFloat(value)
-      }]
-    }, OSCserverIP, OSCserverPort);
-    
-    mainWindow.webContents.send("logInfo", 
-      `${prefix}${attr} ${value} sent to ${OSCserverIP}:${OSCserverPort}`);
-  }
-});
-
-ipcMain.on("sendOscServerIp", (event, oServerIP) => {
-  OSCserverIP = oServerIP;
-});
-
-ipcMain.on("sendOscServerPort", (event, oServerPort) => {
-  OSCserverPort = oServerPort;
-  mainWindow.webContents.send("oServerOK");
-});
-
-ipcMain.on("sendRateChange", (event, rate) => {
-  sendFrequency = 100 / rate;
-});
-
-ipcMain.on('resize-window', (event, { height }) => {
-  if (mainWindow) {
-    const [width] = mainWindow.getSize();
-    mainWindow.setSize(width, height);
+app.on('activate', () => {
+  if (mainWindow === null) {
+    main();
   }
 });
 
@@ -1112,6 +1060,3 @@ const oscAddressFunctions = {
   "/factor": handleFactor,
   "/sendRate": handleSendRate,
 };
-
-// Export store for use in other modules
-module.exports = { store };
