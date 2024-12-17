@@ -1,812 +1,608 @@
-const { ipcRenderer } = require('electron');
-const log = require("electron-log");
-const _ = require("lodash");
-const { initVisualizers, updateVisualizers } = require('./visualization.js');
-const Store = require('electron-store');
-const store = new Store();
+const { ipcRenderer, log } = window.electron;
 
-let preferences;
-try {
-  preferences = ipcRenderer.sendSync("getPreferences");
-} catch (error) {
-  log.error('Error getting preferences:', error);
-}
-
-const modeFunctions = {
-  aed: customMode,
-  ad: customMode,
-  xyz: customMode,
-  xy: customMode,
-  custom1: customMode,
-  custom2: customMode,
-  custom3: customMode,
+// State management for bypass buttons
+let bypassStates = {
+    'byp0': false,
+    'byp1': false,
+    'byp2': false,
+    'byp3': false,
+    'byp4': false,
+    'byp5': false,
+    'byp6': false
 };
 
-let xyVisualizer;
-let yzVisualizer;
-let oscIndicator;
+// Map bypass buttons to input fields (global)
+const inputFieldMap = {
+    1: 'at_tr_x',
+    2: 'at_tr_y',
+    3: 'at_tr_z',
+    4: 'at_rt_x',
+    5: 'at_rt_y',
+    6: 'at_rt_z'
+};
 
-// Initialize the application when the DOM is loaded
-document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    initInputs();
-    resetInputValuesOnDoubleClick();
+// Helper function to update image cell border
+function updateImageCellBorder(fieldId, visible) {
+    let imgCellId = '';
     
-    // Initialize visualizations
-    initVisualizers();
+    // Map field IDs to image cell IDs
+    if (fieldId.includes('tr_x')) imgCellId = 'tr_x_cell';
+    else if (fieldId.includes('tr_y')) imgCellId = 'tr_y_cell';
+    else if (fieldId.includes('tr_z')) imgCellId = 'tr_z_cell';
+    else if (fieldId.includes('rt_x')) imgCellId = 'rt_x_cell';
+    else if (fieldId.includes('rt_y')) imgCellId = 'rt_y_cell';
+    else if (fieldId.includes('rt_z')) imgCellId = 'rt_z_cell';
     
-    // Set up event listeners
+    if (imgCellId) {
+        const imgCell = document.getElementById(imgCellId);
+        if (imgCell) {
+            imgCell.classList.remove('enabled', 'disabled');
+            imgCell.classList.add(visible ? 'enabled' : 'disabled');
+        }
+    }
+}
+
+// Initialize border colors based on initial bypass states
+function initializeBorderColors() {
+    // Get all field IDs
+    const fieldIds = [
+        'at_tr_x', 'at_tr_y', 'at_tr_z',
+        'at_rt_x', 'at_rt_y', 'at_rt_z'
+    ];
+
+    // Update border colors based on field visibility
+    fieldIds.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            const container = field.closest('.at');
+            if (container) {
+                const isVisible = container.style.visibility !== 'hidden';
+                updateImageCellBorder(fieldId, isVisible);
+            }
+        }
+    });
+}
+
+// Helper function to set visibility and update cell border
+const setFieldVisibility = (field, visible) => {
+    if (field) {
+        const container = field.closest('.at');
+        if (container) {
+            container.style.visibility = visible ? 'visible' : 'hidden';
+            updateImageCellBorder(field.id, visible);
+        }
+    }
+};
+
+// Function to update OSC paths
+function updateOSCPaths() {
+    const paths = getOSCPaths();
+    ipcRenderer.send('update-osc-paths', paths);
+}
+
+// Get OSC paths from at_ fields
+function getOSCPaths() {
+    try {
+        const indexField = document.getElementById('index');
+        const prefix = document.getElementById('prefix').value || '/track';
+        const useIndex = indexField && indexField.style.visibility !== 'hidden';
+        const index = useIndex ? indexField.value || '1' : '';
+
+        // Helper function to format path
+        const formatPath = (fieldValue) => {
+            // Remove any leading slashes from field value to prevent double slashes
+            const cleanFieldValue = fieldValue.startsWith('/') ? fieldValue.substring(1) : fieldValue;
+            
+            // Make sure prefix has exactly one trailing slash
+            const cleanPrefix = prefix.endsWith('/') ? prefix.slice(0, -1) : prefix;
+
+            if (useIndex) {
+                return `${cleanPrefix}/${index}/${cleanFieldValue}`;
+            }
+            return `${cleanPrefix}/${cleanFieldValue}`;
+        };
+
+        const paths = {
+            translation: {},
+            rotation: {}
+        };
+
+        // Map translation fields
+        const trFields = {
+            'at_tr_x': ['x', 'tr/x'],
+            'at_tr_y': ['y', 'tr/y'],
+            'at_tr_z': ['z', 'tr/z']
+        };
+
+        // Map rotation fields
+        const rtFields = {
+            'at_rt_x': ['x', 'rt/x'],
+            'at_rt_y': ['y', 'rt/y'],
+            'at_rt_z': ['z', 'rt/z']
+        };
+
+        // Add translation paths if fields are visible
+        Object.entries(trFields).forEach(([fieldId, [axis, defaultPath]]) => {
+            const field = document.getElementById(fieldId);
+            const cell = field?.closest('.at');
+            if (field && cell && cell.style.visibility !== 'hidden') {
+                paths.translation[axis] = formatPath(field.value || defaultPath);
+            }
+        });
+
+        // Add rotation paths if fields are visible
+        Object.entries(rtFields).forEach(([fieldId, [axis, defaultPath]]) => {
+            const field = document.getElementById(fieldId);
+            const cell = field?.closest('.at');
+            if (field && cell && cell.style.visibility !== 'hidden') {
+                paths.rotation[axis] = formatPath(field.value || defaultPath);
+            }
+        });
+
+        // Ensure we have at least one path
+        if (Object.keys(paths.translation).length === 0 && Object.keys(paths.rotation).length === 0) {
+            console.warn('No visible fields found for OSC paths');
+            // Add default paths
+            paths.translation = {
+                x: formatPath('tr/x'),
+                y: formatPath('tr/y'),
+                z: formatPath('tr/z')
+            };
+            paths.rotation = {
+                x: formatPath('rt/x'),
+                y: formatPath('rt/y'),
+                z: formatPath('rt/z')
+            };
+        }
+
+        return paths;
+    } catch (error) {
+        console.error('Error getting OSC paths:', error);
+        // Return default paths
+        return {
+            translation: {
+                x: '/track/tr/x',
+                y: '/track/tr/y',
+                z: '/track/tr/z'
+            },
+            rotation: {
+                x: '/track/rt/x',
+                y: '/track/rt/y',
+                z: '/track/rt/z'
+            }
+        };
+    }
+}
+
+// Initialize bypass buttons and field visibility states
+const initializeStates = () => {
+    // Initialize index field cell
+    const indexCell = document.getElementById('index-cell');
+    const indexField = document.getElementById('index');
+    if (indexCell && indexField) {
+        const isVisible = indexField.style.visibility !== 'hidden';
+        indexCell.classList.toggle('enabled', isVisible);
+        indexCell.classList.toggle('disabled', !isVisible);
+        bypassStates['byp0'] = isVisible;
+
+        // Add click handler for index cell
+        indexCell.addEventListener('click', (event) => {
+            // Only handle clicks directly on the cell, not on the input
+            if (event.target === indexCell || event.target.tagName !== 'INPUT') {
+                const newVisible = indexField.style.visibility === 'hidden';
+                indexField.style.visibility = newVisible ? 'visible' : 'hidden';
+                indexCell.classList.toggle('enabled', newVisible);
+                indexCell.classList.toggle('disabled', !newVisible);
+                bypassStates['byp0'] = newVisible;
+                ipcRenderer.send('bypass-button-pressed', { id: 0, state: newVisible });
+                updateOSCPaths();
+            }
+        });
+    }
+
+    // Initialize image cell click handlers
+    const imgCells = document.querySelectorAll('.img-cell[data-byp]');
+    imgCells.forEach(cell => {
+        const bypId = cell.getAttribute('data-byp');
+        const fieldId = inputFieldMap[bypId];
+        const field = document.getElementById(fieldId);
+        
+        if (field) {
+            const parentCell = field.closest('.at');
+            if (parentCell) {
+                const isVisible = parentCell.style.visibility !== 'hidden';
+                cell.classList.toggle('enabled', isVisible);
+                cell.classList.toggle('disabled', !isVisible);
+                bypassStates[`byp${bypId}`] = !isVisible;
+
+                // Add click handler
+                cell.addEventListener('click', () => {
+                    const newVisible = parentCell.style.visibility === 'hidden';
+                    parentCell.style.visibility = newVisible ? 'visible' : 'hidden';
+                    cell.classList.toggle('enabled', newVisible);
+                    cell.classList.toggle('disabled', !newVisible);
+                    bypassStates[`byp${bypId}`] = !newVisible;
+                    updateImageCellBorder(fieldId, newVisible);
+                    ipcRenderer.send('bypass-button-pressed', { id: parseInt(bypId), state: !newVisible });
+                    updateOSCPaths();
+                });
+            }
+        }
+    });
+};
+
+// Listen for bypass state changes from main process
+ipcRenderer.on('bypass-state-changed', (data) => {
+    if (data && typeof data.id === 'number' && typeof data.state === 'boolean') {
+        const buttonId = `byp${data.id}`;
+        bypassStates[buttonId] = data.state;
+
+        // Get the corresponding input field
+        const fieldId = inputFieldMap[data.id];
+        if (fieldId) {
+            const field = document.getElementById(fieldId);
+            setFieldVisibility(field, !data.state);
+            updateOSCPaths();
+        }
+    }
+});
+
+// Call initialization when the document is ready
+document.addEventListener('DOMContentLoaded', () => {
+    log.info('DOM fully loaded');
+    initializeStates();
     setupEventListeners();
-    
-    // Initialize window height when the page loads
-    updateWindowHeight();
-    
-    // Theme handling
-    ipcRenderer.on('update-theme', (event, theme) => {
-      log.info('Applying theme:', theme);
-      document.documentElement.className = `theme-${theme}`;
-      document.body.className = `theme-${theme}`;
-      
-      // Update visualizer themes
-      initVisualizers();
+    loadInitialPreferences();
+    initializeBorderColors();
+});
+
+// Listen for preference updates from main process
+ipcRenderer.on('preferences-updated', (event, preferences) => {
+    log.info('Preferences updated, syncing UI');
+    if (preferences && preferences.device_settings) {
+        updateUIFromPreferences(preferences.device_settings);
+    }
+});
+
+function updateUIFromPreferences(settings) {
+    // Update UI elements with preference values
+    const elements = {
+        'mode': settings.mode || 'aed',
+        'prefix': settings.prefix || '/track',
+        'index': settings.index || 1,
+        'precision': settings.precision || 'clear',
+        'factor': settings.factor || 1,
+        'sendRate': settings.sendRate !== undefined ? Number(settings.sendRate) : 33
+    };
+
+    // Update each element if it exists
+    Object.entries(elements).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            if (element.type === 'number') {
+                element.value = Number(value);
+            } else {
+                element.value = value;
+            }
+            log.info(`Updated ${id} to ${value}`);
+        }
+    });
+}
+
+async function loadInitialPreferences() {
+    try {
+        const preferences = await ipcRenderer.invoke('getPreferences');
+        if (preferences && preferences.device_settings) {
+            updateUIFromPreferences(preferences.device_settings);
+        }
+    } catch (error) {
+        log.error('Error loading preferences:', error);
+    }
+}
+
+function setupEventListeners() {
+    // Mode selection
+    const modeSelect = document.getElementById('mode');
+    if (modeSelect) {
+        modeSelect.addEventListener('change', (event) => {
+            const mode = event.target.value;
+            log.info('Mode changed:', mode);
+            ipcRenderer.send('mode-change', mode);
+
+            // Get all relevant fields
+            const trFields = {
+                x: document.getElementById('at_tr_x'),
+                y: document.getElementById('at_tr_y'),
+                z: document.getElementById('at_tr_z')
+            };
+            const rtFields = {
+                x: document.getElementById('at_rt_x'),
+                y: document.getElementById('at_rt_y'),
+                z: document.getElementById('at_rt_z')
+            };
+
+            // Set visibility based on mode
+            switch (mode) {
+                case 'xy':
+                    // XY mode - show only X and Y translation fields
+                    setFieldVisibility(trFields.x, true);
+                    setFieldVisibility(trFields.y, true);
+                    setFieldVisibility(trFields.z, false);
+                    setFieldVisibility(rtFields.x, false);
+                    setFieldVisibility(rtFields.y, false);
+                    setFieldVisibility(rtFields.z, false);
+                    break;
+                case 'ae':
+                    // AE mode - show only X and Y rotation fields
+                    setFieldVisibility(trFields.x, false);
+                    setFieldVisibility(trFields.y, false);
+                    setFieldVisibility(trFields.z, false);
+                    setFieldVisibility(rtFields.x, true);
+                    setFieldVisibility(rtFields.y, true);
+                    setFieldVisibility(rtFields.z, false);
+                    break;
+                case 'xyz':
+                    // XYZ mode - show all translation fields
+                    setFieldVisibility(trFields.x, true);
+                    setFieldVisibility(trFields.y, true);
+                    setFieldVisibility(trFields.z, true);
+                    setFieldVisibility(rtFields.x, false);
+                    setFieldVisibility(rtFields.y, false);
+                    setFieldVisibility(rtFields.z, false);
+                    break;
+                case 'aed':
+                    // AED mode - show all rotation fields
+                    setFieldVisibility(trFields.x, false);
+                    setFieldVisibility(trFields.y, false);
+                    setFieldVisibility(trFields.z, false);
+                    setFieldVisibility(rtFields.x, true);
+                    setFieldVisibility(rtFields.y, true);
+                    setFieldVisibility(rtFields.z, true);
+                    break;
+                default:
+                    // Default to showing all fields
+                    setFieldVisibility(trFields.x, true);
+                    setFieldVisibility(trFields.y, true);
+                    setFieldVisibility(trFields.z, true);
+                    setFieldVisibility(rtFields.x, true);
+                    setFieldVisibility(rtFields.y, true);
+                    setFieldVisibility(rtFields.z, true);
+            }
+
+            // Update bypass button states based on field visibility
+            const updateBypassButton = (buttonId, fieldId) => {
+                const button = document.getElementById(buttonId);
+                const field = document.getElementById(fieldId);
+                if (button && field) {
+                    const container = field.closest('.at');
+                    if (container) {
+                        const isVisible = container.style.visibility === 'visible';
+                        button.classList.toggle('active', !isVisible);
+                        bypassStates[buttonId] = !isVisible;
+                        // Notify main process of bypass state change
+                        const id = parseInt(buttonId.replace('byp', ''));
+                        if (!isNaN(id)) {
+                            ipcRenderer.send('bypass-button-pressed', { id, state: !isVisible });
+                        }
+                    }
+                }
+            };
+
+            // Update all bypass buttons
+            updateBypassButton('byp1', 'at_tr_x');
+            updateBypassButton('byp2', 'at_tr_y');
+            updateBypassButton('byp3', 'at_tr_z');
+            updateBypassButton('byp4', 'at_rt_x');
+            updateBypassButton('byp5', 'at_rt_y');
+            updateBypassButton('byp6', 'at_rt_z');
+
+            // Update OSC paths after changing visibility
+            const paths = getOSCPaths();
+            ipcRenderer.send('spacemouse-data-with-paths', {
+                translation: { x: 0, y: 0, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 },
+                paths: paths
+            });
+        });
+    }
+
+    // Input fields
+    const inputFields = {
+        'prefix': (value) => ipcRenderer.send('prefix-change', value),
+        'index': (value) => ipcRenderer.send('index-change', parseInt(value)),
+        'precision': (value) => ipcRenderer.send('precision-change', value),
+        'factor': (value) => ipcRenderer.send('factor-change', parseFloat(value)),
+        'sendRate': (value) => ipcRenderer.send('sendRate-change', parseInt(value))
+    };
+
+    Object.entries(inputFields).forEach(([id, handler]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', (event) => {
+                const value = event.target.value;
+                log.info(`${id} changed:`, value);
+                handler(value);
+            });
+        }
     });
 
     // Handle SpaceMouse data
-    ipcRenderer.on('spacemouse-data', (event, data) => {
-      try {
-        updateUIValues(data);
-      } catch (error) {
-        console.error("Error handling SpaceMouse data:", error);
-      }
-    });
+    ipcRenderer.on('spacemouse-data', (data) => {
+        try {
+            if (!data || typeof data !== 'object') {
+                console.warn('Invalid SpaceMouse data:', data);
+                return;
+            }
 
-    // Theme toggle functionality
-    const themeToggle = document.getElementById('theme-toggle');
-    const themeIcon = document.getElementById('theme-icon');
+            // Get OSC paths
+            const paths = getOSCPaths();
+            
+            // Create the complete data structure with defaults
+            const completeData = {
+                translation: {
+                    x: data.translation?.x || 0,
+                    y: data.translation?.y || 0,
+                    z: data.translation?.z || 0
+                },
+                rotation: {
+                    x: data.rotation?.x || 0,
+                    y: data.rotation?.y || 0,
+                    z: data.rotation?.z || 0
+                },
+                paths: paths
+            };
 
-    // Get initial theme from preferences
-    const prefs = ipcRenderer.sendSync('getPreferences');
-    const initialTheme = prefs?.app_settings?.theme || 'dark';
-    document.documentElement.setAttribute('data-theme', initialTheme);
-    updateThemeIcon(initialTheme);
+            // Log data occasionally for debugging
+            if (Math.random() < 0.001) {
+                console.log('Sending SpaceMouse data:', completeData);
+            }
 
-    themeToggle.addEventListener('click', () => {
-      const currentTheme = document.documentElement.getAttribute('data-theme');
-      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-      
-      document.documentElement.setAttribute('data-theme', newTheme);
-      updateThemeIcon(newTheme);
-
-      // Update visualizers with new theme
-      initVisualizers();
-
-      // Update preferences
-      const currentPrefs = ipcRenderer.sendSync('getPreferences');
-      currentPrefs.app_settings.theme = newTheme;
-      ipcRenderer.send('savePreferences', currentPrefs);
-    });
-
-    // Listen for theme updates from preferences window
-    ipcRenderer.on('update-theme', (event, theme) => {
-      document.documentElement.setAttribute('data-theme', theme);
-      updateThemeIcon(theme);
-      
-      // Update visualizers with new theme
-      initVisualizers();
-    });
-
-    function updateThemeIcon(theme) {
-      const moonPath = themeIcon.querySelector('.moon');
-      const sunPath = themeIcon.querySelector('.sun');
-      
-      if (theme === 'light') {
-        moonPath.style.display = 'none';
-        sunPath.style.display = 'block';
-      } else {
-        moonPath.style.display = 'block';
-        sunPath.style.display = 'none';
-      }
-    }
-  } catch (error) {
-    log.error('Error initializing application:', error);
-  }
-});
-
-function setupEventListeners() {
-  // Set up IPC listeners
-  ipcRenderer.on("logInfo", (e, msg) => {
-    logger(msg);
-    scrollToBottom();
-  });
-
-  ipcRenderer.on("appVersion", (event, appVersion) => {
-    const versionElement = document.getElementById("appVersion");
-    if (versionElement) {
-      versionElement.innerHTML = versionElement.innerHTML + appVersion;
-    }
-  });
-
-  ipcRenderer.on("preference-update", async (event, preferences) => {
-    try {
-      // Update theme if changed
-      if (preferences.app_settings?.theme) {
-        document.documentElement.setAttribute('data-theme', preferences.app_settings.theme);
-      }
-
-      // Update any other UI elements based on preferences
-      await updateUIFromPreferences(preferences);
-    } catch (error) {
-      console.error('Error handling preference update:', error);
-    }
-  });
-
-  ipcRenderer.on("preferencesUpdated", (e, preferences) => {
-    ip_portRegex =
-      /^((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9]):(6553[0-5]|655[0-2]\d|65[0-4]\d{2}|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3})$/;
-    ip_port = preferences.network_settings.osc_server;
-    //logger('ip_port : ' +preferences.network_settings.osc_server +' in regex : ' +ip_portRegex.test(ip_port))
-    if (ip_portRegex.test(ip_port) === true) {
-      //logger("matching ip:port")
-      ipcRenderer.send("matchingIpPort");
-    } else {
-      //logger("not matching ip:port")
-      ipcRenderer.send("notMatchingIpPort");
-    }
-    //logger(preferences.network_settings.osc_server);
-    //
-  });
-
-  ipcRenderer.on("resolveError", (e) => {
-    ipcRenderer.send("showPreferences");
-  });
-
-  ipcRenderer.on("incoming_index", (e, inc_index) => {
-    //console.log('inc_index', inc_index)
-    document.getElementById("index").value = inc_index;
-  });
-
-  ipcRenderer.on(
-    "incoming_data",
-    (event, tx, ty, tz, rx, ry, rz) => {
-      // Convert values to appropriate ranges
-      const x = tx * 0.0005;
-      const y = ty * 0.0005;
-      const z = tz * 0.0005;
-      const rotX = rx * 0.001;
-      const rotY = ry * 0.001;
-      const rotZ = rz * 0.001;
-
-      // Update visualizers
-      if (window.updateVisualizers) {
-          window.updateVisualizers(x, y, z, rotX, rotY, rotZ);
-      }
-
-      // Update OSC indicators
-      const indicators = document.querySelectorAll('.osc-indicator');
-      indicators.forEach(indicator => {
-          indicator.style.backgroundColor = '#4CAF50';
-          indicator.style.opacity = '1';
-          setTimeout(() => {
-              indicator.style.backgroundColor = '#333';
-              indicator.style.opacity = '0.5';
-          }, 100);
-      });
-
-      var precision = document.getElementById("precision").value;
-      var factor = document.getElementById("factor").value;
-      if (precision !== "clear") {
-        document.getElementById("tr_x").value =
-          Math.round(Math.pow(tx * 1, 3) * 5 * factor * precision) /
-          precision;
-        document.getElementById("tr_y").value =
-          Math.round(Math.pow(ty * 1, 3) * -5 * factor * precision) /
-          precision;
-        document.getElementById("tr_z").value =
-          Math.round(Math.pow(tz * 1, 3) * -5 * factor * precision) /
-          precision;
-        document.getElementById("rt_x").value =
-          Math.round(Math.pow(rx * 1, 3) * 5 * factor * precision) /
-          precision;
-        document.getElementById("rt_y").value =
-          Math.round(Math.pow(ry * 1, 3) * -5 * factor * precision) /
-          precision;
-        document.getElementById("rt_z").value =
-          Math.round(Math.pow(rz * 1, 3) * 5 * factor * precision) /
-          precision;
-      } else {
-        document.getElementById("tr_x").value =
-          Math.pow(tx * 1, 3) * 5 * factor;
-        document.getElementById("tr_y").value =
-          Math.pow(ty * 1, 3) * -5 * factor;
-        document.getElementById("tr_z").value =
-          Math.pow(tz * 1, 3) * -5 * factor;
-        document.getElementById("rt_x").value =
-          Math.pow(rx * 1, 3) * 5 * factor;
-        document.getElementById("rt_y").value =
-          Math.pow(ry * 1, 3) * -5 * factor;
-        document.getElementById("rt_z").value =
-          Math.pow(rz * 1, 3) * 5 * factor;
-      }
-      var index_or_not =
-        document.getElementById("index").parentElement.style.visibility;
-      //console.log("visibility of index value : ", index_or_not)
-      var prefix = document.getElementById("prefix").value;
-      var index = document.getElementById("index").value;
-      //console.log("prefix", prefix, "index", index, "index_or_not", index_or_not);
-      var table = document.getElementById("tableOfConnection");
-      //console.log("table.rows[3].cells.length", table.rows[3].cells.length)
-      for (i = 0; i < table.rows[3].cells.length; i++) {
-        //console.log("table_row_5, cell " + i + ":", table.rows[5].cells[i])
-        var visible = table.rows[3].cells[i].style.visibility;
-        var attrib = table.rows[3].cells[i].firstElementChild.value;
-        //console.log("visibility",i, visible)
-        //console.log("attrib",i, attrib)
-        if (visible !== "hidden") {
-          let now = Date();
-          var inc_value = table.rows[4].cells[i].firstElementChild.value;
-          console.log("inc_value", inc_value);
-          if (inc_value !== "0") {
-            ipcRenderer.send(
-              "ok_to_send",
-              prefix,
-              index,
-              index_or_not,
-              attrib,
-              inc_value
-            );
-          }
+            // Send the complete data structure to main process
+            ipcRenderer.send('spacemouse-data-with-paths', completeData);
+        } catch (error) {
+            console.error('Error handling SpaceMouse data:', error);
         }
-      }
-    }
-  );
+    });
 
-  ipcRenderer.on("buttons", (event, buttons) => {
-    const processButtons = _.debounce((buttons) => {
-      if (buttons[0] === true) {
-        document.getElementById("index").stepDown();
-      }
-      if (buttons[1] === true) {
-        document.getElementById("index").stepUp();
-      }
-    }, 20); // 200 milliseconds debounce rate
-    processButtons(buttons);
-  });
+    // Handle SpaceMouse button events
+    ipcRenderer.on('spacemouse-button', (event, { button, state }) => {
+        // Handle SpaceMouse button events without affecting bypass states
+        log.info('SpaceMouse button event:', { button, state });
+    });
 
-  ipcRenderer.on("modeChanged", (event, mode) => {
-    if (modeFunctions[mode]) {
-      //modeSet = preferences.value('paths_sets.' + modeValue)
-      document.getElementById("mode").value = mode;
-      
-      // Save mode to preferences
-      const currentPrefs = ipcRenderer.sendSync('getPreferences');
-      if (!currentPrefs.device_settings) {
-        currentPrefs.device_settings = {};
-      }
-      currentPrefs.device_settings.mode = mode;
-      ipcRenderer.send('savePreferences', currentPrefs);
-      
-      // Call mode function without set parameter
-      modeFunctions[mode]();
-    } else {
-      // Handle the case where the mode is not found
-      logger("Unknown mode:", mode);
-    }
-  });
-
-  ipcRenderer.on("prefixChanged", (event, prefix) => {
-    document.getElementById("prefix").value = prefix;
-  });
-
-  ipcRenderer.on("indexChanged", (event, index) => {
-    idButton = document.getElementById("byp0");
-    const indexCell = idButton.parentElement.previousElementSibling;
-    indexCell.children[1].style.visibility = "visible";
-    if (index === "on") {
-      if (indexCell.style.visibility === "hidden") {
-        indexCell.style.visibility = "visible";
-        idButton.innerHTML = "Bypass";
-        idButton.className = "button_up byp";
-      }
-    } else if (index === "off") {
-      if (indexCell.style.visibility === "visible") {
-        indexCell.style.visibility = "hidden";
-        idButton.innerHTML = "Enable";
-        idButton.className = "button byp";
-      }
-    } else if (index === "reset") {
-      document.getElementById("index").value = 1;
-    } else {
-      document.getElementById("index").value = index;
-    }
-  });
-
-  ipcRenderer.on("factorChanged", (event, factor) => {
-    document.getElementById("factor").value = factor;
-  });
-
-  ipcRenderer.on("precisionChanged", (event, precision) => {
-    document.getElementById("precision").value = precision;
-  });
-
-  ipcRenderer.on("sendRateChanged", (event, sendRate) => {
-    document.getElementById("sendRate").value = sendRate;
-  });
-
-  ipcRenderer.on("osc-sent", () => {
-    if (oscIndicator) {
-      oscIndicator.pulse();
-    }
-  });
-
-  ipcRenderer.on('hidData', (event, data) => {
-    const { translateX, translateY, translateZ, rotateX, rotateY, rotateZ } = data;
+    // Logs visibility toggle
+    const viewLogsButton = document.getElementById('viewlogs');
+    const loggingElement = document.getElementById('logging');
     
-    // Update UI with new values
-    document.getElementById('translateX').textContent = translateX;
-    document.getElementById('translateY').textContent = translateY;
-    document.getElementById('translateZ').textContent = translateZ;
-    document.getElementById('rotateX').textContent = rotateX;
-    document.getElementById('rotateY').textContent = rotateY;
-    document.getElementById('rotateZ').textContent = rotateZ;
-  });
-}
+    if (viewLogsButton && loggingElement) {
+        viewLogsButton.addEventListener('click', () => {
+            // Toggle display instead of visibility for better behavior
+            const isVisible = loggingElement.style.display !== 'none';
+            loggingElement.style.display = isVisible ? 'none' : 'block';
+            viewLogsButton.textContent = isVisible ? '►' : '▼';  
+            log.info(`Logs visibility set to: ${!isVisible}`);
+        });
 
-async function getPreferences() {
-  try {
-    return ipcRenderer.sendSync('getPreferences');
-  } catch (error) {
-    console.error('Error getting preferences:', error);
-    return null;
-  }
-}
-
-async function updatePreferences(newPrefs) {
-  try {
-    const currentPrefs = ipcRenderer.sendSync('getPreferences');
-    const updatedPrefs = _.merge({}, currentPrefs, newPrefs);
-    
-    // Ensure port values are numbers
-    if (updatedPrefs.osc_settings) {
-      if (updatedPrefs.osc_settings.clientPort) {
-        updatedPrefs.osc_settings.clientPort = parseInt(updatedPrefs.osc_settings.clientPort, 10);
-      }
-      if (updatedPrefs.osc_settings.serverPort) {
-        updatedPrefs.osc_settings.serverPort = parseInt(updatedPrefs.osc_settings.serverPort, 10);
-      }
-    }
-    
-    savePreferences(updatedPrefs);
-  } catch (error) {
-    console.error('Error updating preferences:', error);
-  }
-}
-
-async function savePreferences(preferences) {
-  try {
-    // Ensure port values are numbers
-    if (preferences.osc_settings) {
-      if (preferences.osc_settings.clientPort) {
-        preferences.osc_settings.clientPort = parseInt(preferences.osc_settings.clientPort, 10);
-      }
-      if (preferences.osc_settings.serverPort) {
-        preferences.osc_settings.serverPort = parseInt(preferences.osc_settings.serverPort, 10);
-      }
-    }
-    
-    ipcRenderer.send('savePreferences', preferences);
-  } catch (error) {
-    console.error('Error saving preferences:', error);
-  }
-}
-
-function updateUIFromPreferences(preferences) {
-  try {
-    // Update theme
-    if (preferences.app_settings?.theme) {
-      document.documentElement.setAttribute('data-theme', preferences.app_settings.theme);
+        // Set initial state
+        loggingElement.style.display = 'none';
+        viewLogsButton.textContent = '►';  
     }
 
-    // Update other UI elements based on preferences
-    // Add any additional UI updates here
-  } catch (error) {
-    console.error('Error updating UI from preferences:', error);
-  }
-}
+    // Clear logs
+    const clearLogButton = document.getElementById('clearLog');
+    const loggingDiv = document.getElementById('logging');
+    if (clearLogButton && loggingDiv) {
+        clearLogButton.addEventListener('click', () => {
+            // Keep the anchor div but clear everything else
+            const anchor = document.getElementById('anchor');
+            loggingDiv.innerHTML = '';
+            if (anchor) {
+                loggingDiv.appendChild(anchor);
+            }
+            log.info('Logs cleared');
+        });
+    }
 
-function initInputs() {
-  document.addEventListener(
-    "wheel",
-    (event) => {
-      const inputElement = event.target;
-      if (inputElement.type === "number") {
-        event.preventDefault();
+    // Preferences button
+    const preferencesButton = document.getElementById('preferences-button');
+    if (preferencesButton) {
+        preferencesButton.addEventListener('click', () => {
+            log.info('Opening preferences');
+            ipcRenderer.send('show-preferences');
+        });
+    }
 
-        const step = parseFloat(inputElement.step) || 1;
-        const delta = event.deltaY > 0 ? step : -step;
-        let newValue = parseFloat(inputElement.value || 0) + delta;
+    // Add log message handler
+    ipcRenderer.on('log-message', (logEntry) => {
+        const logging = document.getElementById('logging');
+        const anchor = document.getElementById('anchor');
+        if (!logging || !anchor) return;
 
-        if (
-          inputElement.min !== "" &&
-          newValue < parseFloat(inputElement.min)
-        ) {
-          newValue = parseFloat(inputElement.min);
+        // Format the log message
+        let formattedMessage = logEntry.message;
+        if (typeof logEntry.message === 'object') {
+            formattedMessage = JSON.stringify(logEntry.message, null, 2);
         }
 
-        const decimals = Math.max(0, String(step).split(".")[1]?.length || 0);
-        inputElement.value = parseFloat(newValue.toFixed(decimals));
-      }
-    },
-    { passive: false }
-  );
-}
-
-function resetInputValuesOnDoubleClick() {
-  // Get all input elements
-  const inputElements = document.querySelectorAll("input");
-
-  // Add event listener to each input element
-  inputElements.forEach((input) => {
-    input.addEventListener("dblclick", function () {
-      this.value = this.defaultValue; // Reset the value to its default value
+        // Create log element with proper timestamp
+        const logElement = document.createElement('div');
+        logElement.className = `log-entry log-${logEntry.level}`;
+        
+        // Format timestamp
+        const timestamp = logEntry.timestamp ? new Date(logEntry.timestamp) : new Date();
+        const timeStr = timestamp.toLocaleTimeString();
+        
+        logElement.textContent = `${timeStr} - ${formattedMessage}`;
+        
+        // Insert at the top (after anchor)
+        if (logging.firstChild) {
+            logging.insertBefore(logElement, logging.firstChild);
+        } else {
+            logging.appendChild(logElement);
+        }
+        
+        // Limit number of log entries to prevent memory issues
+        const maxLogs = 100;
+        while (logging.children.length > maxLogs) {
+            logging.removeChild(logging.lastChild);
+        }
     });
-  });
+
+    // Set up IPC listeners for spacemouse data
+    ipcRenderer.on('spacemouse-data', (data) => {
+        try {
+            if (!data || !data.translation || !data.rotation) {
+                log.warn('Received invalid spacemouse data');
+                return;
+            }
+
+            // Update translation values
+            const translationElements = {
+                'translation-x': data.translation.x,
+                'translation-y': data.translation.y,
+                'translation-z': data.translation.z
+            };
+
+            // Update rotation values
+            const rotationElements = {
+                'rotation-x': data.rotation.x,
+                'rotation-y': data.rotation.y,
+                'rotation-z': data.rotation.z
+            };
+
+            // Update all values in the UI
+            Object.entries(translationElements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value.toFixed(6);
+                }
+            });
+
+            Object.entries(rotationElements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value.toFixed(6);
+                }
+            });
+
+            // Get OSC paths and send them with the data
+            const oscPaths = getOSCPaths();
+            ipcRenderer.send('spacemouse-data-with-paths', { data, paths: oscPaths });
+
+            // Handle button states if present
+            if (data.buttons && Array.isArray(data.buttons)) {
+                data.buttons.forEach((state, index) => {
+                    const buttonId = `byp${index}`;
+                    const button = document.getElementById(buttonId);
+                    if (button && bypassStates[buttonId] !== state) {
+                        bypassStates[buttonId] = state;
+                        button.classList.toggle('button_down', state);
+                        button.classList.toggle('button_up', !state);
+                    }
+                });
+            }
+        } catch (error) {
+            log.error('Error handling spacemouse data:', error);
+        }
+    });
 }
-
-function logDefinition() {
-  console.log = log.log;
-  Object.assign(console, log.functions);
-  log.transports.console.format = "{h}:{i}:{s} / {text}";
-}
-logDefinition();
-
-log.transports.div = log.transports.console;
-
-function logger(msg) {
-  let date = new Date();
-  date =
-    date.getHours() +
-    ":" +
-    (date.getMinutes() < 10 ? "0" : "") +
-    date.getMinutes() +
-    ":" +
-    (date.getSeconds() < 10 ? "0" : "") +
-    date.getSeconds() +
-    "-->";
-  if (document.getElementById("logging")) {
-    document
-      .getElementById("logging")
-      .insertAdjacentHTML("beforeend", date + JSON.stringify(msg) + "<br>");
-    scrollToBottom();
-  }
-}
-function scrollToBottom() {
-  document.getElementById("logging").scrollTop =
-    document.getElementById("logging").scrollHeight;
-}
-
-function displayForm3(event) {
-  const add3 = document.getElementById("add3");
-  var ip11 = document.getElementById("ip11").value;
-  var ip21 = document.getElementById("ip21").value;
-  var ip31 = document.getElementById("ip31").value;
-  var ip41 = document.getElementById("ip41").value;
-  var port2 = document.getElementById("port2").value;
-  var data1 = ip11 + "." + ip21 + "." + ip31 + "." + ip41;
-  oscServerIp = data1;
-  oscServerPort = port2;
-  add3.textContent = "OK!  Address : " + data1 + "   /   Port : " + port2;
-  ipcRenderer.send("sendOscServerIp", data1);
-  ipcRenderer.send("sendOscServerPort", Number(port2));
-  event.preventDefault();
-}
-
-function modeChange(event) {
-  try {
-    const mode = event.target.value;
-    if (modeFunctions[mode]) {
-      document.getElementById("mode").value = mode;
-      
-      // Save mode to preferences
-      const currentPrefs = ipcRenderer.sendSync('getPreferences');
-      if (!currentPrefs.device_settings) {
-        currentPrefs.device_settings = {};
-      }
-      currentPrefs.device_settings.mode = mode;
-      ipcRenderer.send('savePreferences', currentPrefs);
-      
-      // Call mode function without set parameter
-      modeFunctions[mode]();
-    } else {
-      // Handle the case where the mode is not found
-      logger("Unknown mode:", mode);
-    }
-  } catch (error) {
-    console.error("Error changing mode:", error);
-  }
-}
-
-function setVisibility(elementIds, visibility) {
-  elementIds.forEach((id) => {
-    document.getElementById(id).parentElement.style.visibility = visibility;
-  });
-}
-
-function updateButtons(bypButtons, start, end, className, text) {
-  for (let i = start; i < end; i++) {
-    bypButtons[i].className = className;
-    bypButtons[i].innerHTML = text;
-  }
-}
-
-function setAtVisibility(elementIds, visibility) {
-  elementIds.forEach((id) => {
-    document.getElementById(id).style.visibility = visibility;
-  });
-}
-
-function customMode() {
-  try {
-    // Get current preferences
-    const prefs = ipcRenderer.sendSync('getPreferences');
-    const mode = prefs?.device_settings?.mode || 'xyz';
-
-    // Update UI based on mode
-    const elementIds = ['tr_x', 'tr_y', 'tr_z', 'rot_x', 'rot_y', 'rot_z'];
-    
-    switch (mode) {
-      case 'aed':
-        setVisibility(['tr_x', 'tr_y', 'tr_z'], 'hidden');
-        setVisibility(['rot_x', 'rot_y', 'rot_z'], 'visible');
-        break;
-      case 'ad':
-        setVisibility(['tr_x', 'tr_y', 'tr_z'], 'hidden');
-        setVisibility(['rot_x', 'rot_y'], 'visible');
-        setVisibility(['rot_z'], 'hidden');
-        break;
-      case 'xyz':
-        setVisibility(['tr_x', 'tr_y', 'tr_z'], 'visible');
-        setVisibility(['rot_x', 'rot_y', 'rot_z'], 'visible');
-        break;
-      case 'xy':
-        setVisibility(['tr_x', 'tr_y'], 'visible');
-        setVisibility(['tr_z', 'rot_x', 'rot_y', 'rot_z'], 'hidden');
-        break;
-      default:
-        // For custom modes, show all controls
-        setVisibility(elementIds, 'visible');
-    }
-    
-    // Update window height after changing visibility
-    updateWindowHeight();
-  } catch (error) {
-    console.error("Error in customMode:", error);
-  }
-}
-
-function byp_0(event) {
-  const buttonId = event.target.id;
-  const button = document.getElementById(buttonId);
-  const indexCell = button.parentElement.previousElementSibling;
-  indexCell.style.visibility =
-    indexCell.style.visibility === "hidden" ? "visible" : "hidden";
-  indexCell.children[1].style.visibility = "visible";
-
-  // Toggle the innerHTML of the button between "bypass" and "enable"
-  if (button.innerHTML === "Bypass") {
-    button.innerHTML = "Enable";
-  } else {
-    button.innerHTML = "Bypass";
-  }
-  if (button.className === "button_up byp") {
-    button.className = "button byp";
-  } else {
-    button.className = "button_up byp";
-  }
-}
-
-function showPreferences(preferencesBtn) {
-  ipcRenderer.send("showPreferences");
-}
-
-function sendRateChange(event) {
-  // Send the rate change event using IPC
-  ipcRenderer.send("sendRateChange", document.getElementById("sendRate").value);
-}
-
-function toggleText(buttonId) {
-  const button = document.getElementById(buttonId);
-  if (button.innerHTML === "enable") {
-    button.innerHTML = "bypass";
-  } else {
-    button.innerHTML = "enable";
-  }
-}
-
-function toggleVisibility(event) {
-  // Get the id of the clicked button and the button element
-  const buttonId = event.target.id;
-  const button = document.getElementById(buttonId);
-
-  // Toggle the innerHTML of the button between "bypass" and "enable"
-  if (button.innerHTML === "Bypass") {
-    button.innerHTML = "Enable";
-  } else {
-    button.innerHTML = "Bypass";
-  }
-  if (button.className === "button_up byp") {
-    button.className = "button byp";
-  } else {
-    button.className = "button_up byp";
-  }
-
-  // Get the table cell containing the button
-  const cell = button.parentElement;
-  const cellIndex = cell.cellIndex; // Assuming the buttons are inside table cells
-  console.log(cellIndex);
-
-  // Check if the button is inside a table cell
-  if (cellIndex !== -1) {
-    // Get the table containing the cell
-    const table = cell.closest("table");
-
-    // Get the cells in the two rows above and in the same column as the clicked button
-    const twoRowsAbove =
-      cell.parentElement.previousElementSibling.previousElementSibling;
-    const cellTwoRowsAbove = twoRowsAbove.querySelector(
-      "td:nth-child(" + (cellIndex + 1) + ")"
-    );
-
-    const rowAbove = cell.parentElement.previousElementSibling;
-    const cellOneRowAbove = rowAbove.querySelector(
-      "td:nth-child(" + (cellIndex + 1) + ")"
-    );
-
-    // Toggle the visibility of the cells in the two rows above
-    if (cellTwoRowsAbove && cellOneRowAbove) {
-      toggleCellVisibility(cellTwoRowsAbove);
-      toggleCellVisibility(cellOneRowAbove);
-    } else {
-      console.error("Cells not found in the two rows above");
-    }
-  } else {
-    console.error("Button not found inside a table cell");
-  }
-}
-
-function toggleCellVisibility(cell) {
-  if (cell.style.visibility === "hidden") {
-    cell.style.visibility = "visible";
-  } else {
-    cell.style.visibility = "hidden";
-  }
-}
-
-function viewlogs() {
-  let logs = document.getElementById("logging");
-  let clearlogs = document.getElementById("clearlogs");
-  let deploy = document.getElementById("viewlogs");
-
-  if (logs.style.visibility === "hidden") {
-    logs.style.visibility = "visible";
-    logs.style.minHeight = "150px";
-    logs.style.maxHeight = "150px";
-    clearlogs.style.visibility = "visible";
-    clearlogs.style.height = "20px";
-    deploy.textContent = "▼";
-  } else {
-    logs.style.visibility = "hidden";
-    logs.style.minHeight = "1px";
-    logs.style.maxHeight = "1px";
-    clearlogs.style.visibility = "hidden";
-    clearlogs.style.height = "1px";
-    deploy.textContent = "►";
-  }
-  
-  // Update window height after toggle
-  updateWindowHeight();
-}
-
-function toggleVisualization() {
-  const visualizers = document.getElementById('visualizers');
-  const button = document.getElementById('viewvis');
-  
-  if (!visualizers || !button) return;
-  
-  if (visualizers.style.display === 'none') {
-    visualizers.style.display = 'flex';
-    button.innerHTML = '▼';
-  } else {
-    visualizers.style.display = 'none';
-    button.innerHTML = '▲';
-  }
-  
-  // Update window height after toggle
-  updateWindowHeight();
-}
-
-function updateWindowHeight() {
-  // Base height calculation
-  let height = 0;
-  
-  // Menu height (including margins)
-  height += 40;  // Menu button + margins
-  
-  // Table section
-  height += 320; // Table rows + padding
-  
-  // Visualization section
-  const visContent = document.getElementById("visualization-content");
-  if (visContent && visContent.style.display !== 'none') {
-    height += 20;  // Header
-    height += 120; // Visualizer height
-    height += 40;  // Padding and margins
-  }
-  
-  // Logs section
-  const logs = document.getElementById("logging");
-  if (logs && logs.style.visibility === "visible") {
-    height += 20;   // Header
-    height += 150;  // Logs content
-    height += 20;   // Clear logs button
-    height += 40;   // Padding and margins
-  }
-  
-  // Additional padding for window
-  height += 40;
-  
-  // Update window height through IPC
-  ipcRenderer.send("resize-window", { height });
-}
-
-function clearLog() {
-  document.getElementById("logging").innerHTML = '<div id="anchor"></div>';
-}
-
-function updateUIValues(data) {
-  try {
-    // Update visualizers
-    updateVisualizers(data);
-
-    // Update OSC indicator
-    const oscIndicator = document.getElementById('osc-indicator');
-    if (oscIndicator) {
-      oscIndicator.classList.add('pulse');
-      setTimeout(() => oscIndicator.classList.remove('pulse'), 100);
-    }
-  } catch (error) {
-    console.error("Error updating UI values:", error);
-  }
-}
-
-// Initialize when document is ready
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    // Show visualizers by default
-    const visualizers = document.getElementById('visualizers');
-    if (visualizers) {
-      visualizers.style.display = 'flex';
-    }
-    
-    // Initialize visualizers
-    initVisualizers();
-    
-    // Update button state
-    const button = document.getElementById('viewvis');
-    if (button) {
-      button.innerHTML = '▼';
-    }
-  } catch (error) {
-    console.error("Error initializing visualizers:", error);
-  }
-});
-
-// Theme change handler
-ipcRenderer.on('update-theme', (event, theme) => {
-  try {
-    document.documentElement.setAttribute('data-theme', theme);
-    // Re-initialize visualizers to update colors
-    initVisualizers();
-  } catch (error) {
-    console.error("Error updating theme:", error);
-  }
-});
