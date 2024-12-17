@@ -1,299 +1,320 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>spacemouse-osc</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.159.0/three.min.js"></script>
-    <script script type="text/javascript" src="./renderer.js"></script>
-    <script script type="text/javascript" src="./visualization.js"></script>
-    <link rel="stylesheet" type="text/css" href="./style.css" />
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com;"
-    />
-  </head>
-  <body>
-    <div id="menu" class="left" style="font-weight: bold; padding-left: 2%">
-      <button
-        class="button preferencesBtn"
-        id="preferencesBtn"
-        onclick="showPreferences(this.id)"
-      >
-        &#9881; Preferences
-      </button>
-    </div>
-    <!-- Theme toggle button -->
-    <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
-      <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <!-- Moon icon (for dark theme) -->
-        <path class="moon" d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
-        <!-- Sun icon (for light theme) -->
-        <path class="sun" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>
-    </button>
-    <div>
-      <div class="table">
-        <table id="tableOfConnection" style="width: 100%; text-align: center">
-          <tr>
-            <td>
-              <br>
-              <label for="mode">Mode : </label>
-              <select name="mode" id="mode">
-                <option value="aed">AED</option>
-                <option value="ad">AD</option>
-                <option value="xyz">XYZ</option>
-                <option value="xy">XY</option>
-                <option value="custom1">Custom1</option>
-                <option value="custom2">Custom2</option>
-                <option value="custom3">Custom3</option>
-              </select>
-              <br>
-              <script>
-                mode.addEventListener("change", modeChange);
-              </script>
-              
-            </td>
-            <td colspan="2">
-              <br>
-              <label for="prefix">Prefix : </label
-              ><input type="text" id="prefix" name="prefix" value="/track" />
-              <br>
-            </td>
-            <td colspan="2" align="right" style="visibility: visible;">
-              <br>
-              <label for="index">Index : </label
-              ><input
-                type="number"
-                id="index"
-                name="index"
-                value="1"
-                min="1"
-                step="1"
-              />
-              <br>
-            </td>
-            <td align="left">
-              <br>
-              <button class="button_up byp" id="byp0">Bypass</button>
-              <br>
-              <script>
-                byp0.addEventListener("click", byp_0);
-              </script>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <br>
-              <label for="precision">Precision : </label>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://cdnjs.cloudflare.com">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpaceMouse OSC</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .img-cell {
+            border: 2px solid #ccc;
+            padding: 5px;
+            transition: border-color 0.3s ease;
+            text-align: center;
+            vertical-align: middle;
+            cursor: pointer;
+        }
+        .img-cell.enabled {
+            border-color: #A3BE8C;  /* Nord green */
+        }
+        .img-cell.disabled {
+            border-color: #BF616A;  /* Nord red */
+        }
+        
+        .img-cell img {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            height: auto;
+            pointer-events: none; /* Make sure clicks go to the cell */
+        }
 
-              <select name="precision" id="precision" value="clear">
-                <option value="clear">clear</option>
-                <option value="100000">1/100000</option>
-                <option value="1000">1/1000</option>
-                <option value="100">1/100</option>
-                <option value="10">1/10</option>
-                <option value="1">1</option>  
-              </select>
-            </td>
-            <td colspan="2">
-              <br>
-              <label for="factor">Factor : </label>
-              <input type="number" name="factor" id="factor" value="1" step="0.1" min="0.1"/>
-            </td>
-            <td colspan="3">
-              <br>
-              <label for="sendRate">Send Rate(%) : </label>
-              <input type="number" name="sendRate" id="sendRate"  min="1" max="100" value="33" step="1" />
-              <script>
-                sendRate.addEventListener("change", sendRateChange);
-              </script>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <img
-                src="./assets/translate_x.png"
-                alt=""
-                width="50%"
-                height="50%"
-              />
-            </td>
-            <td>
-              <img
-                src="./assets/translate_z.png"
-                alt=""
-                width="50%"
-                height="50%"
-              />
-            </td>
-            <td>
-              <img
-                src="./assets/translate_y.png"
-                alt=""
-                width="50%"
-                height="50%"
-              />
-            </td>
-            <td>
-              <img
-                src="./assets/rotate_x.png"
-                alt=""
-                width="50%"
-                height="50%"
-              />
-            </td>
-            <td>
-              <img
-                src="./assets/rotate_z.png"
-                alt=""
-                width="50%"
-                height="50%"
-              />
-            </td>
-            <td>
-              <img
-                src="./assets/rotate_y.png"
-                alt=""
-                width="50%"
-                height="50%"
-              />
-            </td>
-          </tr>
-          <tr>
-            <td class="at" style="visibility: hidden">
-              <input  type="text" id="at_tr_x" name="at_tr_y" value="/x++" />
-            </td>
-            <td class="at" style="visibility: hidden">
-              <input  type="text" id="at_tr_y" name="at_tr_y" value="/y++" />
-            </td>
-            <td class="at" style="visibility: hidden">
-              <input type="text" id="at_tr_z" name="at_tr_z" value="/z++" />
-            </td>
-            <td class="at" style="visibility: visible">
-              <input type="text" id="at_rt_x" name="at_rt_x" value="/elev++"/>
-            </td>
-            <td class="at" style="visibility: visible">
-              <input type="text" id="at_rt_y" name="at_rt_y" value="/azim++"/>
-            </td>
-            <td class="at" style="visibility: visible">
-              <input type="text" id="at_rt_z" name="at_rt_z" value="/dist++"/>
-            </td>
-          </tr>
-          <tr>
-            <td class="value" style="visibility: hidden">
-              <input type="number" id="tr_x" name="tr_x" value="0" step="0.1"/>
-            </td>
-            <td class="value" style="visibility: hidden">
-              <input type="number" id="tr_y" name="tr_y" value="0" step="0.1"/>
-            </td>
-            <td class="value" style="visibility: hidden">
-              <input type="number" id="tr_z" name="tr_z" value="0" step="0.1"/>
-            </td>
-            <td class="value" style="visibility: visible"><input type="number" id="rt_x" name="rt_x" value="0" step="0.1"/></td>
-            <td class="value" style="visibility: visible"><input type="number" id="rt_y" name="rt_y" value="0" step="0.1"/></td>
-            <td class="value" style="visibility: visible"><input type="number" id="rt_z" name="rt_z" value="0" step="0.1"/></td>
-          </tr>
-          <tr>
-            <td>
-              <button class="button byp" id="byp1">Enable</button>
-              <script>
-                byp1.addEventListener("click", toggleVisibility);
-              </script>
-            </td>
-            <td>
-              <button class="button byp" id="byp2">Enable</button>
-              <script>
-                byp2.addEventListener("click", toggleVisibility);
-              </script>
-            </td>
-            <td>
-              <button class="button byp" id="byp3">Enable</button>
-              <script>
-                byp3.addEventListener("click", toggleVisibility);
-              </script>
-            </td>
-            <td>
-              <button class="button_up byp" id="byp4">Bypass</button>
-              <script>
-                byp4.addEventListener("click", toggleVisibility);
-              </script>
-            </td>
-            <td>
-              <button class="button_up byp" id="byp5">Bypass</button>
-              <script>
-                byp5.addEventListener("click", toggleVisibility);
-              </script>
-            </td>
-            <td>
-              <button class="button_up byp" id="byp6">Bypass</button>
-              <script>
-                byp6.addEventListener("click", toggleVisibility);
-              </script>
-            </td>
-          </tr>
+        /* Index field cell styles */
+        .index-cell {
+            border: 2px solid #ccc;
+            padding: 5px;
+            transition: border-color 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .index-cell.enabled {
+            border-color: #A3BE8C;  /* Nord green */
+        }
+        .index-cell.disabled {
+            border-color: #BF616A;  /* Nord red */
+        }
+        .index-cell label {
+            pointer-events: none;  /* Allow clicks to pass through to cell */
+        }
+        .index-cell input {
+            pointer-events: auto;  /* Make input interactive */
+            cursor: text;  /* Show text cursor for input */
+        }
+        
+        /* Nord theme bypass button colors */
+        .bypass {
+            background-color: #4C566A;  /* Nord dark gray */
+            border: none;
+            padding: 8px;
+            width: 32px;
+            height: 32px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;  /* Center horizontally */
+        }
+        .bypass:hover {
+            filter: brightness(1.1);
+        }
+        .bypass.active {
+            background-color: #BF616A;  /* Nord red */
+        }
+        .bypass:not(.active) {
+            background-color: #A3BE8C;  /* Nord green */
+        }
+        .bypass i {
+            font-size: 14px;
+            color: #E5E9F0;  /* Nord light text - always the same */
+        }
 
-        </table>
-      </div>
-    </div>
-    <div class="visualization-section">
-      <div style="width: 100%; text-align: center; font-weight: bold;">
-        Visualization <button id="viewvis" onclick="toggleVisualization()">▼</button>
-        <span id="osc-indicator" class="osc-indicator"></span>
-      </div>
-      <div id="visualizers" style="display: none;">
-        <div class="visualizers">
-          <div class="visualizer-container">
-            <h3>Position (XYZ)</h3>
-            <div id="xyz-visualizer"></div>
-            <div class="legend">
-              <div class="legend-item"><span class="color-box x-color"></span>X (Left/Right)</div>
-              <div class="legend-item"><span class="color-box y-color"></span>Y (Forward/Back)</div>
-              <div class="legend-item"><span class="color-box z-color"></span>Z (Up/Down)</div>
-            </div>
-          </div>
-          <div class="visualizer-container">
-            <h3>Rotation (Pitch/Roll/Yaw)</h3>
-            <div id="orbital-visualizer"></div>
-            <div class="legend">
-              <div class="legend-item"><span class="color-box pitch-color"></span>Pitch (X - Forward/Back)</div>
-              <div class="legend-item"><span class="color-box roll-color"></span>Roll (Y - Side/Side)</div>
-              <div class="legend-item"><span class="color-box yaw-color"></span>Yaw (Z - Left/Right)</div>
-            </div>
-          </div>
+        /* Center bypass button cells */
+        #tableOfConnection td:last-child,
+        #tableOfConnection tr:last-child td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        /* Table styles */
+        #tableOfConnection {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        /* Column widths */
+        #tableOfConnection td {
+            padding: 5px;
+            white-space: normal;
+            overflow: visible;
+            width: 16.666%;  /* Equal width for all 6 columns (100% / 6) */
+        }
+        
+        /* Value columns in the second part of the table */
+        #tableOfConnection td.value {
+            text-align: right;
+            padding-right: 10px;
+        }
+        
+        /* Bypass button columns */
+        #tableOfConnection td[align="left"] {
+            padding: 5px;
+            text-align: center;
+        }
+        
+        /* Input fields */
+        #tableOfConnection input,
+        #tableOfConnection select {
+            width: calc(100% - 10px);
+            max-width: 100%;
+            box-sizing: border-box;
+            margin: 2px;
+        }
+
+        /* Label styles */
+        #tableOfConnection label {
+            display: inline-block;
+            margin-right: 5px;
+            white-space: nowrap;
+        }
+
+        /* Input container */
+        #tableOfConnection td > div {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            width: 100%;
+        }
+
+        /* Specific field sizes */
+        #mode, #precision {
+            width: 100%;
+        }
+
+        #prefix {
+            width: 100%;
+        }
+
+        #index, #factor, #sendRate {
+            width: 80px;
+        }
+
+        .at input {
+            width: 100%;
+        }
+
+        /* Handle colspan */
+        #tableOfConnection td[colspan="2"] {
+            width: 33.333%;  /* 2 columns width */
+        }
+        #tableOfConnection td[colspan="3"] {
+            width: 50%;  /* 3 columns width */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="menu" class="left" style="font-weight: bold; padding-left: 2%">
+            <button class="button preferencesBtn" id="preferences-button">&#9881; Preferences</button>
         </div>
-      </div>
+
+        <div class="data-display">
+            <div class="table">
+                <table id="tableOfConnection">
+                    <colgroup>
+                        <col style="width: 16.666%">
+                        <col style="width: 16.666%">
+                        <col style="width: 16.666%">
+                        <col style="width: 16.666%">
+                        <col style="width: 16.666%">
+                        <col style="width: 16.666%">
+                    </colgroup>
+                    <tr>
+                        <td colspan="2">
+                            <br>
+                            <div>
+                                <label for="mode">Mode : </label>
+                                <select id="mode" class="form-select">
+                                    <option value="xy">XY Mode (2D Translation)</option>
+                                    <option value="ae">AE Mode (2D Rotation)</option>
+                                    <option value="xyz">XYZ Mode (3D Translation)</option>
+                                    <option value="aed">AED Mode (3D Rotation)</option>
+                                    <option value="all">All Axes</option>
+                                </select>
+                            </div>
+                            <br>
+                        </td>
+                        <td colspan="2">
+                            <br>
+                            <div>
+                                <label for="prefix">Prefix : </label>
+                                <input type="text" id="prefix" name="prefix" value="/track" />
+                            </div>
+                            <br>
+                        </td>
+                        <td colspan="2" class="index-cell" id="index-cell">
+                            <br>
+                            <div>
+                                <label for="index">Index : </label>
+                                <input type="number" id="index" name="index" value="1" min="1" step="1" />
+                            </div>
+                            <br>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <br>
+                            <div>
+                                <label for="precision">Precision : </label>
+                                <select name="precision" id="precision" value="clear">
+                                    <option value="clear">clear</option>
+                                    <option value="100000">1/100000</option>
+                                    <option value="1000">1/1000</option>
+                                    <option value="100">1/100</option>
+                                    <option value="10">1/10</option>
+                                    <option value="1">1</option>  
+                                </select>
+                            </div>
+                        </td>
+                        <td colspan="2">
+                            <br>
+                            <div>
+                                <label for="factor">Factor : </label>
+                                <input type="number" name="factor" id="factor" value="1" step="0.1" min="0.1"/>
+                            </div>
+                        </td>
+                        <td colspan="2">
+                            <br>
+                            <div>
+                                <label for="sendRate">Send Rate(%) : </label>
+                                <input type="number" name="sendRate" id="sendRate" min="1" max="100" value="33" step="1" />
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="img-cell" id="tr_x_cell" data-byp="1"><img src="./assets/translate_x.png" alt="" width="50%" height="50%" /></td>
+                        <td class="img-cell" id="tr_y_cell" data-byp="2"><img src="./assets/translate_z.png" alt="" width="50%" height="50%" /></td>
+                        <td class="img-cell" id="tr_z_cell" data-byp="3"><img src="./assets/translate_y.png" alt="" width="50%" height="50%" /></td>
+                        <td class="img-cell" id="rt_x_cell" data-byp="4"><img src="./assets/rotate_x.png" alt="" width="50%" height="50%" /></td>
+                        <td class="img-cell" id="rt_y_cell" data-byp="5"><img src="./assets/rotate_z.png" alt="" width="50%" height="50%" /></td>
+                        <td class="img-cell" id="rt_z_cell" data-byp="6"><img src="./assets/rotate_y.png" alt="" width="50%" height="50%" /></td>
+                    </tr>
+                    <tr>
+                        <td class="at" style="visibility: hidden">
+                            <input type="text" id="at_tr_x" name="at_tr_y" value="/x++" />
+                        </td>
+                        <td class="at" style="visibility: hidden">
+                            <input type="text" id="at_tr_y" name="at_tr_y" value="/y++" />
+                        </td>
+                        <td class="at" style="visibility: hidden">
+                            <input type="text" id="at_tr_z" name="at_tr_z" value="/z++" />
+                        </td>
+                        <td class="at" style="visibility: visible">
+                            <input type="text" id="at_rt_x" name="at_rt_x" value="/elev++"/>
+                        </td>
+                        <td class="at" style="visibility: visible">
+                            <input type="text" id="at_rt_y" name="at_rt_y" value="/azim++"/>
+                        </td>
+                        <td class="at" style="visibility: visible">
+                            <input type="text" id="at_rt_z" name="at_rt_z" value="/dist++"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="value">
+                            <span id="translation-x">0.000000</span>
+                        </td>
+                        <td class="value">
+                            <span id="translation-y">0.000000</span>
+                        </td>
+                        <td class="value">
+                            <span id="translation-z">0.000000</span>
+                        </td>
+                        <td class="value">
+                            <span id="rotation-x">0.000000</span>
+                        </td>
+                        <td class="value">
+                            <span id="rotation-y">0.000000</span>
+                        </td>
+                        <td class="value">
+                            <span id="rotation-z">0.000000</span>
+                        </td>
+                    </tr>
+                </table>
+              </div>
+        </div>
+
+        <div class="logs-section" id="logs-section">
+            <div class="logs-section-header">
+                <span>LOGS</span>
+                <div>
+                    <button id="viewlogs" class="button_up">►</button>
+                    <button id="clearLog" class="button_up">Clear</button>
+                </div>
+            </div>
+            <div id="logging">
+                <div id="anchor"></div>
+            </div>
+        </div>
     </div>
-    <div>
-      <div style="width: 100%; height: 20px; text-align: center; font-weight: bold;">
-        LOGS <button id="viewlogs" onclick="viewlogs()">▼</button>
-      </div>
-      <div id="logging" style="visibility: visible; min-height: 150px; max-height: 150px;">
-        <div id="anchor"></div>
-      </div>
-      <div id="clearlogs" style="width: 100%; height: 20px; text-align: center; visibility: visible;">
-        <button onclick="clearLog()">
-          Clear Logs!
-        </button>
-      </div>
-    </div>
-    <div
-      style="width: 100%; height: 20px; text-align: center; font-weight: bold;"
-    >
-    </div>
-    <div id="clearlogs" style="width: 100%; height: 1px; visibility: hidden;">
-      <button
-        style="position: absolute; left: 50%; margin-left: -20px;"
-        onclick="clearLog()"
-      >
-        Clear Logs!
-      </button>
-    </div>
-  </body>
-  <footer class="little" style="display: inline-block">
-    <p>
-      <span style="position: absolute; right: 10px" id="appVersion"
-        >Version :
-      </span>
-    </p>
-  </footer>
+    <script src="renderer.js"></script>
+    <footer class="little" style="display: inline-block">
+        <p>
+          <span style="position: absolute; right: 10px" id="appVersion">Version : </span>
+        </p>
+    </footer>
+</body>
 </html>
