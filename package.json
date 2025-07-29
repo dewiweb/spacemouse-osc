@@ -25,7 +25,8 @@
     "electron-preferences": "^2.8.2",
     "lodash": "^4.17.21",
     "node-hid": "^3.0.0",
-    "osc": "^2.4.4"
+    "osc": "^2.4.4",
+    "hidapi": "^0.14.0"
   },
   "build": {
     "appId": "mouse3d-osc",
