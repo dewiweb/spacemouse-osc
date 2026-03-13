@@ -8,7 +8,7 @@
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^29.1.0",
+    "electron": "^35.7.5",
     "electron-builder": "^24.13.3",
     "standard-version": "^9.5.0"
   },
