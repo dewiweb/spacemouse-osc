@@ -13,25 +13,30 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        version: [17]
 
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
-      - name: Install libusb and libudev development headers (Ubuntu only)
+      - name: Install libusb, libudev, and build tools (Ubuntu only)
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev libudev-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential python3 g++ make \
+            libusb-1.0-0-dev libudev-dev
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@master
+      - name: Install Node.js, NPM, and Yarn
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '20'
+          cache: 'yarn'
 
-      - name: install dependencies
-        run: yarn add electron-builder --dev
-      - name: yarn install
+      - name: Install dependencies
         run: yarn install
-      - name: publish
 
+      - name: Rebuild native modules for Electron
+        run: npx electron-rebuild
+
+      - name: Build and publish
         run: yarn run publish
