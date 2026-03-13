@@ -19,6 +19,8 @@ jobs:
 
       - name: Install Node.js, NPM and Yarn
         uses: actions/setup-node@master
+        with:
+          node-version: '22'
 
       - name: install dependencies
         run: yarn add electron-builder --dev
