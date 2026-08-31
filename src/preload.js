@@ -49,6 +49,7 @@ contextBridge.exposeInMainWorld(
                     'bypass-state-changed',
                     'logInfo',
                     'oServerOK',
+                    'mode',
                     'prefix',
                     'precision',
                     'factor',
@@ -63,7 +64,8 @@ contextBridge.exposeInMainWorld(
                     'update-osc-paths',
                     'enable-mouse-fallback',
                     'device-connected',
-                    'overlay-data'
+                    'overlay-data',
+                    'osc-message'
                 ];
                 if (validChannels.includes(channel)) {
                     // Strip event and properly forward the data

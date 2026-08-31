@@ -305,6 +305,29 @@ ipcRenderer.on('preferences-updated', (event, preferences) => {
     }
 });
 
+// Listen for incoming OSC remote-control messages
+// These update the UI elements directly (mode, prefix, index, etc.)
+['mode', 'prefix', 'index', 'precision', 'factor', 'sendRate'].forEach(channel => {
+    ipcRenderer.on(channel, (event, value) => {
+        const el = document.getElementById(channel);
+        if (el) {
+            if (el.type === 'number') {
+                el.value = Number(value);
+            } else {
+                el.value = value;
+            }
+            log.info(`[OSC IN] ${channel} → ${value}`);
+            // Trigger change event so updateOSCPaths and other handlers fire
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
+});
+
+// Log incoming OSC messages (for debugging)
+ipcRenderer.on('osc-message', (event, data) => {
+    log.info(`[OSC IN] ${data.address} from ${data.source}`);
+});
+
 function updateUIFromPreferences(settings) {
     // Update UI elements with preference values
     const elements = {

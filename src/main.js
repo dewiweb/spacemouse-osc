@@ -1021,6 +1021,30 @@ function setupOSC() {
     udpPort.on("ready", () => {
       log.info(`OSC UDP Port ready on port ${oscSettings.udpPort}`);
       log.info(`Sending to ${oscSettings.serverIp}:${oscSettings.serverPort}`);
+      log.info(`Listening for incoming OSC on port ${oscSettings.udpPort}`);
+    });
+
+    // Listen for incoming OSC messages (remote control of the app)
+    udpPort.on("message", (oscMsg, timeTag, info) => {
+      const address = oscMsg.address;
+      const args = oscMsg.args;
+      log.info(`OSC received: ${address} from ${info.address}:${info.port}`);
+
+      // Forward to renderer for logging/display
+      if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send('osc-message', {
+          address,
+          args,
+          source: `${info.address}:${info.port}`
+        });
+      }
+
+      // Dispatch to known address handlers
+      if (oscAddressFunctions[address]) {
+        oscAddressFunctions[address](args);
+      } else {
+        log.debug(`No handler for OSC address: ${address}`);
+      }
     });
 
     udpPort.on("error", (err) => {
@@ -1090,40 +1114,55 @@ app.on('activate', () => {
   }
 });
 
-// OSC address handlers
+// OSC address handlers — receive remote control commands via OSC
 function handleMode(args) {
   const modeValue = args[0].value;
-  if (modeFunctions[modeValue]) {
-    modeFunctions[modeValue](modeValue);
-  }
+  log.info(`[OSC IN] mode → ${modeValue}`);
+  setPreference('device_settings', 'mode', modeValue);
+  if (spaceMiceManager) spaceMiceManager.options.mode = modeValue;
+  if (mainWindow && mainWindow.webContents) mainWindow.webContents.send("mode", modeValue);
 }
 
 function handlePrefix(args) {
   const prefixValue = args[0].value;
-  if (mainWindow && mainWindow.webContents) {
-    mainWindow.webContents.send("prefix", prefixValue);
-  }
+  log.info(`[OSC IN] prefix → ${prefixValue}`);
+  setPreference('device_settings', 'prefix', prefixValue);
+  if (spaceMiceManager) spaceMiceManager.options.prefix = prefixValue;
+  if (mainWindow && mainWindow.webContents) mainWindow.webContents.send("prefix", prefixValue);
 }
 
 function handlePrecision(args) {
   const precisionValue = args[0].value;
-  if (mainWindow && mainWindow.webContents) {
-    mainWindow.webContents.send("precision", precisionValue);
-  }
+  log.info(`[OSC IN] precision → ${precisionValue}`);
+  setPreference('device_settings', 'precision', precisionValue);
+  if (spaceMiceManager) spaceMiceManager.options.precision = precisionValue;
+  if (mainWindow && mainWindow.webContents) mainWindow.webContents.send("precision", precisionValue);
 }
 
 function handleFactor(args) {
-  const factorValue = args[0].value;
-  if (mainWindow && mainWindow.webContents) {
-    mainWindow.webContents.send("factor", factorValue);
-  }
+  const factorValue = Number(args[0].value);
+  log.info(`[OSC IN] factor → ${factorValue}`);
+  setPreference('device_settings', 'factor', factorValue);
+  if (spaceMiceManager) spaceMiceManager.options.factor = factorValue;
+  if (mainWindow && mainWindow.webContents) mainWindow.webContents.send("factor", factorValue);
 }
 
 function handleSendRate(args) {
-  const rateValue = args[0].value;
-  if (mainWindow && mainWindow.webContents) {
-    mainWindow.webContents.send("sendRate", rateValue);
+  const rateValue = Number(args[0].value);
+  log.info(`[OSC IN] sendRate → ${rateValue}`);
+  if (!isNaN(rateValue) && rateValue >= 1 && rateValue <= 100) {
+    setPreference('device_settings', 'sendRate', rateValue);
+    if (spaceMiceManager) spaceMiceManager.options.sendRate = rateValue;
+    if (mainWindow && mainWindow.webContents) mainWindow.webContents.send("sendRate", rateValue);
   }
+}
+
+function handleIndex(args) {
+  const indexValue = Number(args[0].value);
+  log.info(`[OSC IN] index → ${indexValue}`);
+  setPreference('device_settings', 'index', indexValue);
+  if (spaceMiceManager) spaceMiceManager.options.index = indexValue;
+  if (mainWindow && mainWindow.webContents) mainWindow.webContents.send("index", indexValue);
 }
 
 const modeFunctions = {
@@ -1139,6 +1178,7 @@ const modeFunctions = {
 const oscAddressFunctions = {
   "/mode": handleMode,
   "/prefix": handlePrefix,
+  "/index": handleIndex,
   "/precision": handlePrecision,
   "/factor": handleFactor,
   "/sendRate": handleSendRate,
