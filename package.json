@@ -8,7 +8,6 @@
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
-    "@electron/rebuild": "^4.2.0",
     "electron": "^42.0.0",
     "electron-builder": "^26.15.3",
     "node-abi": "^4.2.0",
@@ -16,6 +15,7 @@
   },
   "scripts": {
     "start": "electron .",
+    "postinstall": "electron-builder install-app-deps",
     "package": "electron-builder build --win --x64",
     "publish": "electron-builder  build --publish always",
     "release": "standard-version",
