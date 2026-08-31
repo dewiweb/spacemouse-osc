@@ -4,7 +4,7 @@
     "name": "dewiweb",
     "email": "dewiweb@gmail.com"
   },
-  "version": "2.3.0",
+  "version": "2.4.0",
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
@@ -26,8 +26,7 @@
     "electron-preferences": "^2.8.2",
     "lodash": "^4.18.1",
     "node-hid": "^3.4.0",
-    "osc": "^2.4.5",
-    "robotjs": "^0.9.1"
+    "osc": "^2.4.5"
   },
   "resolutions": {
     "lodash": "^4.18.1",

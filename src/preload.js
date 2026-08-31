@@ -32,9 +32,7 @@ contextBridge.exposeInMainWorld(
                     'log-debug',
                     'update-osc-paths',
                     'enable-mouse-fallback',
-                    'spacemouse-data',
                     'get-screen-size',
-                    'fallback-mapping-settings',
                     'show-overlay',
                     'hide-overlay'
                 ];
@@ -64,6 +62,7 @@ contextBridge.exposeInMainWorld(
                     'log-debug',
                     'update-osc-paths',
                     'enable-mouse-fallback',
+                    'device-connected',
                     'overlay-data'
                 ];
                 if (validChannels.includes(channel)) {

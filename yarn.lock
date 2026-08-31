@@ -2124,11 +2124,6 @@ node-addon-api@7.0.0:
   resolved "https://registry.npmjs.org/node-addon-api/-/node-addon-api-7.0.0.tgz#8136add2f510997b3b94814f4af1cce0b0e3962e"
   integrity sha512-vgbBJTS4m5/KkE16t5Ly0WW9hz46swAstv0hYYwMtbG7AznRhNyfLRe8HZAiWIpcHzoO7HxhLuBQj9rJ/Ho0ZA==
 
-node-addon-api@^4.2.0:
-  version "4.3.0"
-  resolved "https://registry.npmjs.org/node-addon-api/-/node-addon-api-4.3.0.tgz#52a1a0b475193e0928e98e0426a0d1254782b77f"
-  integrity sha512-73sE9+3UaLYYFmDsFZnqCInzPyh3MqIwZO9cw58yIqAZhONrrabrYyYe3TuIqtIiOuTXVhsGau8hcrhhwSsDIQ==
-
 node-addon-api@^8.9.0:
   version "8.9.2"
   resolved "https://registry.npmjs.org/node-addon-api/-/node-addon-api-8.9.2.tgz#db7ac94a13ffd9b55e6cb04584bd5ef8e1d74b18"
@@ -2145,11 +2140,6 @@ node-gyp-build@4.6.0:
   version "4.6.0"
   resolved "https://registry.npmjs.org/node-gyp-build/-/node-gyp-build-4.6.0.tgz#0c52e4cbf54bbd28b709820ef7b6a3c2d6209055"
   integrity sha512-NTZVKn9IylLwUzaKjkas1e4u2DLNcV4rdYagA4PWdPwW87Bi7z+BznyKSRwS/761tV/lzCGXplWsiaMjLqP2zQ==
-
-node-gyp-build@^4.8.4:
-  version "4.8.4"
-  resolved "https://registry.npmjs.org/node-gyp-build/-/node-gyp-build-4.8.4.tgz#8a70ee85464ae52327772a90d66c6077a900cfc8"
-  integrity sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==
 
 node-gyp@^12.2.0:
   version "12.4.0"
@@ -2660,14 +2650,6 @@ roarr@^2.15.3:
     json-stringify-safe "^5.0.1"
     semver-compare "^1.0.0"
     sprintf-js "^1.1.2"
-
-robotjs@^0.9.1:
-  version "0.9.1"
-  resolved "https://registry.npmjs.org/robotjs/-/robotjs-0.9.1.tgz#2badf5bc96d05ef14faae0e381c256ff55cf6cda"
-  integrity sha512-1c9pOcCT0H/Y9Oc9DvwR+ZQKYwngHgCD4d3A+Q7zEWbVovHq1FipctSRiq99L4I8t0IdhMDOBX+pTRtZdSaSXg==
-  dependencies:
-    node-addon-api "^4.2.0"
-    node-gyp-build "^4.8.4"
 
 safe-buffer@~5.1.0, safe-buffer@~5.1.1:
   version "5.1.2"

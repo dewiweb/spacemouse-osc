@@ -245,13 +245,29 @@
                             </div>
                         </td>
                     </tr>
-                    <tr>
+                    <tr id="device-axes-row">
                         <td class="img-cell" id="tr_x_cell" data-byp="1"><img src="./assets/translate_x.png" alt="" width="50%" height="50%" /></td>
                         <td class="img-cell" id="tr_y_cell" data-byp="2"><img src="./assets/translate_z.png" alt="" width="50%" height="50%" /></td>
                         <td class="img-cell" id="tr_z_cell" data-byp="3"><img src="./assets/translate_y.png" alt="" width="50%" height="50%" /></td>
                         <td class="img-cell" id="rt_x_cell" data-byp="4"><img src="./assets/rotate_x.png" alt="" width="50%" height="50%" /></td>
                         <td class="img-cell" id="rt_y_cell" data-byp="5"><img src="./assets/rotate_z.png" alt="" width="50%" height="50%" /></td>
                         <td class="img-cell" id="rt_z_cell" data-byp="6"><img src="./assets/rotate_y.png" alt="" width="50%" height="50%" /></td>
+                    </tr>
+                    <tr id="joystick-row" class="hidden">
+                        <td colspan="6" style="text-align: center; padding: 15px;">
+                            <div class="joystick-wrapper">
+                                <div id="joystick-base" class="joystick-base">
+                                    <div class="joystick-crosshair-h"></div>
+                                    <div class="joystick-crosshair-v"></div>
+                                    <div id="joystick-knob" class="joystick-knob"></div>
+                                </div>
+                                <div class="joystick-values">
+                                    <span>X: <span id="joystick-x">0.000</span></span>
+                                    <span>Y: <span id="joystick-y">0.000</span></span>
+                                    <span>Z: <span id="joystick-z">0.000</span></span>
+                                </div>
+                            </div>
+                        </td>
                     </tr>
                     <tr>
                         <td class="at" style="visibility: hidden">
