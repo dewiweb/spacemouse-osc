@@ -1,5 +1,167 @@
 const { ipcRenderer, log } = window.electron;
 
+// Fallback: Enable conventional mouse as input if user approves
+let mouseFallbackActive = false;
+
+// Overlay toggle state
+let overlayActive = false;
+window.addEventListener('keydown', async (e) => {
+    if (e.ctrlKey && e.shiftKey && e.code === 'KeyO') {
+        e.preventDefault();
+        overlayActive = !overlayActive;
+        if (overlayActive) {
+            // Get screen size from main
+            let width = 1920, height = 1080;
+            try {
+                const sz = await ipcRenderer.invoke('get-screen-size');
+                width = sz.width; height = sz.height;
+            } catch {}
+            ipcRenderer.send('show-overlay', { width, height });
+        } else {
+            ipcRenderer.send('hide-overlay');
+        }
+    }
+});
+
+
+ipcRenderer.on('enable-mouse-fallback', () => {
+    if (!mouseFallbackActive) {
+        mouseFallbackActive = true;
+        log.info('Mouse fallback mode enabled.');
+        log.info('UserAgent:', navigator.userAgent);
+        if (navigator.platform) log.info('Platform:', navigator.platform);
+        if (navigator.hardwareConcurrency) log.info('CPUs:', navigator.hardwareConcurrency);
+        // Make translation fields visible for fallback mode
+        ['at_tr_x', 'at_tr_y', 'at_tr_z'].forEach(id => {
+            const field = document.getElementById(id);
+            if (field) {
+                const cell = field.closest('.at');
+                if (cell) cell.style.visibility = 'visible';
+            }
+        });
+        updateOSCPaths();
+        ipcRenderer.send('enable-mouse-fallback'); // Request global fallback in main process
+
+        // Open Preferences window (fallback mapping section will need to be selected by user)
+        ipcRenderer.send('show-preferences');
+
+        // Add mousemove event to send fallback data (in-app only)
+        window.addEventListener('mousemove', (e) => {
+            if (!mouseFallbackActive) return;
+            // Map mouse X/Y to screen
+            const x = e.clientX;
+            const y = e.clientY;
+            // Z is always 0 in fallback mode
+            ipcRenderer.send('spacemouse-data', {
+                translation: { x, y, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 },
+                buttons: [false, false],
+                source: 'conventional-mouse'
+            });
+        });
+        const modal = document.getElementById('fallback-mapping-modal');
+        if (modal) {
+            // Request preferences and screen size, then prefill modal fields
+            Promise.all([
+                ipcRenderer.invoke('getPreferences'),
+                ipcRenderer.invoke('get-screen-size')
+            ]).then(([prefs, screen]) => {
+                let fm = (prefs && prefs.fallback_mapping) ? prefs.fallback_mapping : {};
+                let width = screen.width || 1920;
+                let height = screen.height || 1080;
+                document.getElementById('fallback-center-x').value = (fm.centerX !== undefined) ? fm.centerX : 0;
+                document.getElementById('fallback-center-y').value = (fm.centerY !== undefined) ? fm.centerY : 0;
+                document.getElementById('fallback-x-min').value = (fm.xMin !== undefined) ? fm.xMin : -Math.floor(width/2);
+                document.getElementById('fallback-x-max').value = (fm.xMax !== undefined) ? fm.xMax : Math.floor(width/2);
+                document.getElementById('fallback-y-min').value = (fm.yMin !== undefined) ? fm.yMin : -Math.floor(height/2);
+                document.getElementById('fallback-y-max').value = (fm.yMax !== undefined) ? fm.yMax : Math.floor(height/2);
+                modal.style.display = 'block';
+            }).catch(() => {
+                // fallback to 1920x1080 if IPC fails
+                document.getElementById('fallback-center-x').value = 0;
+                document.getElementById('fallback-center-y').value = 0;
+                document.getElementById('fallback-x-min').value = -960;
+                document.getElementById('fallback-x-max').value = 960;
+                document.getElementById('fallback-y-min').value = -540;
+                document.getElementById('fallback-y-max').value = 540;
+                modal.style.display = 'block';
+            });
+
+            // Modal logic
+            const form = document.getElementById('fallback-mapping-form');
+            const cancelBtn = document.getElementById('fallback-mapping-cancel');
+            const saveBtn = document.getElementById('fallback-mapping-save');
+            // Remove previous listeners if any
+            form.onsubmit = null;
+            cancelBtn.onclick = null;
+            // Save handler
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                const settings = {
+                    centerX: Number(document.getElementById('fallback-center-x').value),
+                    centerY: Number(document.getElementById('fallback-center-y').value),
+                    xMin: Number(document.getElementById('fallback-x-min').value),
+                    xMax: Number(document.getElementById('fallback-x-max').value),
+                    yMin: Number(document.getElementById('fallback-y-min').value),
+                    yMax: Number(document.getElementById('fallback-y-max').value)
+                };
+                // Two-way sync: update Preferences fallback_mapping section as well
+                ipcRenderer.invoke('getPreferences').then((prefs) => {
+                    prefs = prefs || {};
+                    prefs.fallback_mapping = { ...prefs.fallback_mapping, ...settings };
+                    ipcRenderer.send('savePreferences', prefs);
+                    // Also send to main for live update
+                    ipcRenderer.send('fallback-mapping-settings', settings);
+                    modal.style.display = 'none';
+                }).catch(() => {
+                    // Fallback: just send to main if Preferences fetch fails
+                    ipcRenderer.send('fallback-mapping-settings', settings);
+                    modal.style.display = 'none';
+                });
+            };
+            // Cancel handler
+            cancelBtn.onclick = function() {
+                modal.style.display = 'none';
+            };
+        }
+    }
+});
+
+// Listen for global fallback mouse updates from main process
+ipcRenderer.on('fallback-mouse-update', (data) => {
+    if (typeof data.mouseX === 'number') {
+        const xField = document.getElementById('at_tr_x');
+        if (xField) xField.value = data.mouseX.toFixed(1);
+    }
+    if (typeof data.mouseY === 'number') {
+        const yField = document.getElementById('at_tr_y');
+        if (yField) yField.value = data.mouseY.toFixed(1);
+    }
+    // Optionally show mapped OSC values as well (oscX/oscY)
+    if (typeof data.oscX === 'number') {
+        const oscXField = document.getElementById('osc_tr_x');
+        if (oscXField) oscXField.value = data.oscX.toFixed(2);
+    }
+    if (typeof data.oscY === 'number') {
+        const oscYField = document.getElementById('osc_tr_y');
+        if (oscYField) oscYField.value = data.oscY.toFixed(2);
+    }
+});
+
+// Local enableMouseFallback is now obsolete; global fallback is handled by main process/iohook.
+// function enableMouseFallback() {
+//     // Make translation fields visible for fallback mode
+//     ['at_tr_x', 'at_tr_y', 'at_tr_z'].forEach(id => {
+//         const field = document.getElementById(id);
+//         if (field) {
+//             const cell = field.closest('.at');
+//             if (cell) cell.style.visibility = 'visible';
+//         }
+//     });
+//     updateOSCPaths();
+//     // All mouse event listeners removed. Global fallback now handled in main process.
+// }
+
 // State management for bypass buttons
 let bypassStates = {
     'byp0': false,
@@ -261,6 +423,10 @@ ipcRenderer.on('preferences-updated', (event, preferences) => {
     log.info('Preferences updated, syncing UI');
     if (preferences && preferences.device_settings) {
         updateUIFromPreferences(preferences.device_settings);
+    }
+    // --- Unify fallback mapping with Preferences as source of truth ---
+    if (preferences && preferences.fallback_mapping) {
+        ipcRenderer.send('fallback-mapping-settings', preferences.fallback_mapping);
     }
 });
 

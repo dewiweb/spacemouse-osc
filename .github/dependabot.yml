@@ -1,0 +1,54 @@
+version: 2
+updates:
+  # Runtime & dev dependencies (yarn)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase-if-necessary
+    labels:
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(dev-deps)"
+    groups:
+      # Group security-relevant packages to reduce PR noise
+      lodash:
+        patterns:
+          - "lodash"
+          - "lodash-es"
+      electron:
+        patterns:
+          - "electron"
+          - "electron-builder"
+          - "electron-rebuild"
+          - "electron-context-menu"
+          - "electron-log"
+          - "electron-preferences"
+      osc:
+        patterns:
+          - "osc"
+          - "ws"
+      robotjs:
+        patterns:
+          - "robotjs"
+          - "tar-fs"
+    ignore:
+      # Avoid auto-bumping to pre-releases
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions versions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"

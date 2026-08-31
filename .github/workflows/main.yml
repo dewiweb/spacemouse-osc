@@ -1,5 +1,8 @@
 name: Build/release
-on: push
+on:
+  push:
+    tags:
+      - 'v*'
 
 env:
   GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
@@ -11,19 +14,21 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        version: [17]
 
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@master
+      - name: Install Node.js and Yarn
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
-      - name: install dependencies
-        run: yarn add electron-builder --dev
-      - name: yarn install
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Install dependencies
         run: yarn install
-      - name: publish
 
+      - name: Publish
         run: yarn run publish

@@ -30,7 +30,13 @@ contextBridge.exposeInMainWorld(
                     'log-error',
                     'log-warn',
                     'log-debug',
-                    'update-osc-paths'
+                    'update-osc-paths',
+                    'enable-mouse-fallback',
+                    'spacemouse-data',
+                    'get-screen-size',
+                    'fallback-mapping-settings',
+                    'show-overlay',
+                    'hide-overlay'
                 ];
                 if (validChannels.includes(channel)) {
                     ipcRenderer.send(channel, data);
@@ -56,7 +62,9 @@ contextBridge.exposeInMainWorld(
                     'log-error',
                     'log-warn',
                     'log-debug',
-                    'update-osc-paths'
+                    'update-osc-paths',
+                    'enable-mouse-fallback',
+                    'overlay-data'
                 ];
                 if (validChannels.includes(channel)) {
                     // Strip event and properly forward the data
@@ -79,7 +87,7 @@ contextBridge.exposeInMainWorld(
                 }
             },
             invoke: async (channel, data) => {
-                const validChannels = ['getPreferences'];
+                const validChannels = ['getPreferences', 'get-screen-size'];
                 if (validChannels.includes(channel)) {
                     return await ipcRenderer.invoke(channel, data);
                 }

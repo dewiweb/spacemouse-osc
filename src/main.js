@@ -82,6 +82,13 @@ function setPreference(section, key, value) {
   }
 }
 
+// Add IPC handler for screen size
+const { screen } = require('electron');
+ipcMain.handle('get-screen-size', () => {
+    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+    return { width, height };
+});
+
 // Preferences configuration
 const preferences = new ElectronPreferences({
     dataStore: path.resolve(app.getPath('userData'), 'preferences.json'),
@@ -103,6 +110,14 @@ const preferences = new ElectronPreferences({
             index: 1,
             precision: 'clear',
             factor: 1
+        },
+        fallback_mapping: {
+            centerX: 0,
+            centerY: 0,
+            xMin: -960,
+            xMax: 960,
+            yMin: -540,
+            yMax: 540
         }
     },
     sections: [
@@ -248,12 +263,94 @@ const preferences = new ElectronPreferences({
                     }
                 ]
             }
+        },
+        {
+            id: 'fallback_mapping',
+            label: 'Fallback Mapping Settings',
+            icon: 'mouse',
+            form: {
+                groups: [
+                    {
+                        label: 'Fallback Mapping',
+                        fields: [
+                            {
+                                label: 'Center X',
+                                key: 'centerX',
+                                type: 'number',
+                                help: 'Center X coordinate',
+                                default: 0,
+                                min: -10000,
+                                max: 10000,
+                                step: 1
+                            },
+                            {
+                                label: 'Center Y',
+                                key: 'centerY',
+                                type: 'number',
+                                help: 'Center Y coordinate',
+                                default: 0,
+                                min: -10000,
+                                max: 10000,
+                                step: 1
+                            },
+                            {
+                                label: 'X Min',
+                                key: 'xMin',
+                                type: 'number',
+                                help: 'Minimum X coordinate',
+                                default: -960,
+                                min: -10000,
+                                max: 10000,
+                                step: 1
+                            },
+                            {
+                                label: 'X Max',
+                                key: 'xMax',
+                                type: 'number',
+                                help: 'Maximum X coordinate',
+                                default: 960,
+                                min: -10000,
+                                max: 10000,
+                                step: 1
+                            },
+                            {
+                                label: 'Y Min',
+                                key: 'yMin',
+                                type: 'number',
+                                help: 'Minimum Y coordinate',
+                                default: -540,
+                                min: -10000,
+                                max: 10000,
+                                step: 1
+                            },
+                            {
+                                label: 'Y Max',
+                                key: 'yMax',
+                                type: 'number',
+                                help: 'Maximum Y coordinate',
+                                default: 540,
+                                min: -10000,
+                                max: 10000,
+                                step: 1
+                            }
+                        ]
+                    }
+                ]
+            }
         }
+        
     ]
 });
 
 // Handle preferences changes
 preferences.on('save', (preferences) => {
+    // --- Unify fallback mapping with Preferences as source of truth ---
+    if (preferences.fallback_mapping) {
+        // Send to main process fallback logic for live update
+        if (mainWindow && mainWindow.webContents) {
+            mainWindow.webContents.send('fallback-mapping-settings', preferences.fallback_mapping);
+        }
+    }
     log.info('Preferences updated:', preferences);
     
     // Apply app settings
@@ -279,6 +376,11 @@ preferences.on('save', (preferences) => {
         spaceMiceManager.options.precision = settings.precision;
         spaceMiceManager.options.factor = settings.factor;
         spaceMiceManager.options.sendRate = Number(settings.sendRate);
+    }
+    
+    // Apply fallback mapping settings
+    if (preferences.fallback_mapping) {
+        fallbackMappingSettings = preferences.fallback_mapping;
     }
 
     // Notify renderer of preference changes
@@ -432,80 +534,362 @@ ipcMain.on('resize-window', (event, { height }) => {
   }
 });
 
-ipcMain.on('bypass-button-pressed', (event, data) => {
-    if (data && typeof data.id === 'number' && typeof data.state === 'boolean') {
-        log.info('Bypass button pressed:', data);
-        mainWindow.webContents.send('bypass-state-changed', data);
-    } else {
-        log.warn('Invalid bypass button data:', data);
+// --- GLOBAL MOUSE FALLBACK WITH ROBOTJS ---
+let robotjs = null;
+let robotjsInterval = null;
+let robotjsLastPos = { x: 0, y: 0 };
+
+// --- OVERLAY WINDOW ---
+
+let overlayWindow = null;
+function showOverlay(screenWidth, screenHeight) {
+    // Always destroy any existing overlay window before creating a new one
+    if (overlayWindow) {
+        try {
+            overlayWindow.close();
+        } catch (e) {}
+        overlayWindow = null;
+    }
+    overlayWindow = new BrowserWindow({
+        width: screenWidth,
+        height: screenHeight,
+        x: 0,
+        y: 0,
+        frame: false,
+        transparent: true,
+        alwaysOnTop: true,
+        skipTaskbar: true,
+        focusable: false,
+        fullscreen: true,
+        hasShadow: false,
+        resizable: false,
+        show: true,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: true,
+            preload: require('path').join(__dirname, 'preload.js')
+        }
+    });
+    overlayWindow.setIgnoreMouseEvents(true);
+    overlayWindow.loadFile(require('path').join(__dirname, 'overlay.html'));
+    overlayWindow.webContents.openDevTools({ mode: 'detach' });
+}
+function hideOverlay() {
+    if (overlayWindow) {
+        try {
+            overlayWindow.close();
+        } catch (e) {}
+        overlayWindow = null;
+    }
+}
+// IPC handlers for overlay toggle
+ipcMain.on('show-overlay', (event, { width, height }) => {
+    showOverlay(width, height);
+});
+ipcMain.on('hide-overlay', () => {
+    hideOverlay();
+});
+function sendOverlayData(data) {
+    if (overlayWindow && overlayWindow.webContents) {
+        overlayWindow.webContents.send('overlay-data', data);
+    }
+}
+
+// Fallback mapping settings (defaults)
+let fallbackMappingSettings = {
+    centerX: 960,
+    centerY: 540,
+    xMin: 0,
+    xMax: 1920,
+    yMin: 0,
+    yMax: 1080,
+    zMin: -1,
+    zMax: 1
+};
+
+// On startup, initialize fallbackMappingSettings from Preferences if available
+app.whenReady().then(() => {
+    try {
+        const userPrefs = preferences.preferences && preferences.preferences.fallback_mapping;
+        if (userPrefs) {
+            // Coerce all values to numbers and log any bad values
+            for (const key of Object.keys(fallbackMappingSettings)) {
+                if (userPrefs[key] !== undefined) {
+                    const n = Number(userPrefs[key]);
+                    if (isNaN(n)) {
+                        log.warn(`[INIT] fallbackMappingSettings: Invalid value for ${key}:`, userPrefs[key]);
+                        fallbackMappingSettings[key] = 0;
+                    } else {
+                        fallbackMappingSettings[key] = n;
+                    }
+                }
+            }
+            log.info('[INIT] fallbackMappingSettings initialized from Preferences:', fallbackMappingSettings);
+        }
+    } catch (e) {
+        log.warn('Could not initialize fallbackMappingSettings from Preferences:', e);
     }
 });
 
-ipcMain.on('spacemouse-button', (event, { button, state }) => {
-    log.info('SpaceMouse button:', { button, state });
-    // Only handle SpaceMouse button events, do not affect bypass state
+
+
+function startGlobalMouseFallback() {
+    if (robotjsInterval) return;
+    try {
+        robotjs = require('robotjs');
+    } catch (err) {
+        log.error('Failed to load robotjs for global mouse fallback:', err);
+        return;
+    }
+    robotjsLastPos = robotjs.getMousePos();
+    log.info('[DEBUG] Initial global mouse position:', robotjsLastPos);
+
+    // Dynamically detect screen size
+    const { screen } = require('electron');
+    const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+    const screenCenterX = screenWidth / 2;
+    const screenCenterY = screenHeight / 2;
+
+    // If fallbackMappingSettings are still defaults, set to centered system
+    if (
+        fallbackMappingSettings.centerX === 960 &&
+        fallbackMappingSettings.centerY === 540 &&
+        fallbackMappingSettings.xMin === 0 &&
+        fallbackMappingSettings.xMax === 1920 &&
+        fallbackMappingSettings.yMin === 0 &&
+        fallbackMappingSettings.yMax === 1080
+    ) {
+        fallbackMappingSettings = {
+            centerX: 0,
+            centerY: 0,
+            xMin: -Math.floor(screenWidth/2),
+            xMax: Math.floor(screenWidth/2),
+            yMin: -Math.floor(screenHeight/2),
+            yMax: Math.floor(screenHeight/2)
+        };
+    }
+
+robotjsInterval = setInterval(() => {
+    const pos = robotjs.getMousePos();
+    // Use user-configured mapping
+    const {
+        centerX, centerY, xMin, xMax, yMin, yMax
+    } = fallbackMappingSettings;
+
+    // If mapping is symmetric around zero and center is zero, map directly
+    // Properly normalize to user-specified min/max and screen size
+    // mappedX: [0, screenWidth] -> [xMin, xMax]
+    // mappedY: [0, screenHeight] -> [yMin, yMax]
+    // Map [0, screenWidth] to [xMin, xMax] and add centerX as offset
+    let mappedX = xMin + ((pos.x / screenWidth) * (xMax - xMin)) + centerX;
+    let mappedY = yMin + ((pos.y / screenHeight) * (yMax - yMin)) + centerY;
+    // Z is always 0 in fallback
+    const mappedZ = 0;
+
+    // Defensive: ensure mappedX, mappedY, mappedZ are numbers before toFixed
+    const safeMappedX = (typeof mappedX === 'number' && isFinite(mappedX)) ? mappedX : 0;
+    const safeMappedY = (typeof mappedY === 'number' && isFinite(mappedY)) ? mappedY : 0;
+    const safeMappedZ = (typeof mappedZ === 'number' && isFinite(mappedZ)) ? mappedZ : 0;
+    log.debug(`[DEBUG] Polling tick: abs=(${pos.x},${pos.y}), mapped=(${safeMappedX.toFixed(3)},${safeMappedY.toFixed(3)},${safeMappedZ.toFixed(3)})`);
+    const data = {
+        translation: { x: mappedX, y: mappedY, z: mappedZ },
+        rotation: { x: 0, y: 0, z: 0 },
+        buttons: [false, false],
+        source: 'conventional-mouse-global'
+    };
+    // Send overlay data if overlay is active
+    sendOverlayData({
+        xMin: fallbackMappingSettings.xMin,
+        xMax: fallbackMappingSettings.xMax,
+        yMin: fallbackMappingSettings.yMin,
+        yMax: fallbackMappingSettings.yMax,
+        centerX: fallbackMappingSettings.centerX,
+        centerY: fallbackMappingSettings.centerY,
+        mouseX: pos.x,
+        mouseY: pos.y,
+        oscX: mappedX,
+        oscY: mappedY,
+        screenWidth,
+        screenHeight
+    });
+
+    // Forward global mouse position and mapped values to renderer for UI update
+    if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send('fallback-mouse-update', {
+            mouseX: pos.x,
+            mouseY: pos.y,
+            oscX: mappedX,
+            oscY: mappedY
+        });
+    }
+    log.info('[DEBUG] Calling handleFallbackMouseData with:', data);
+    handleFallbackMouseData(data);
+}, 20); // 50Hz polling
+
+    log.info('Global mouse fallback (robotjs) started.');
+}
+
+function stopGlobalMouseFallback() {
+    if (robotjsInterval) {
+        clearInterval(robotjsInterval);
+        robotjsInterval = null;
+        log.info('Global mouse fallback (robotjs) stopped.');
+    }
+}
+
+function stopGlobalMouseFallback() {
+    if (!iohookActive || !iohook) return;
+    iohook.removeAllListeners('mousemove');
+    iohook.removeAllListeners('mousedown');
+    iohook.removeAllListeners('mouseup');
+    iohook.removeAllListeners('mousewheel');
+    iohook.stop();
+    iohookActive = false;
+    log.info('Global mouse fallback (iohook) stopped.');
+}
+
+// Call this when fallback is enabled by user
+ipcMain.on('enable-mouse-fallback', () => {
+    startGlobalMouseFallback();
+});
+// Optionally, listen for a disable event:
+ipcMain.on('disable-mouse-fallback', () => {
+    stopGlobalMouseFallback();
 });
 
-ipcMain.on('spacemouse-data-with-paths', (event, data) => {
+// Handle live update of fallback mapping settings from Preferences or modal
+ipcMain.on('fallback-mapping-settings', (event, settings) => {
+    // Coerce and validate all values
+    for (const key of Object.keys(fallbackMappingSettings)) {
+        if (settings[key] !== undefined) {
+            const n = Number(settings[key]);
+            fallbackMappingSettings[key] = isNaN(n) ? 0 : n;
+        }
+    }
+    log.info('[LIVE] fallbackMappingSettings updated via IPC:', fallbackMappingSettings);
+    // If overlay is active, send new overlay data immediately
+    if (overlayWindow && overlayWindow.webContents) {
+        const screenWidth = overlayWindow.getBounds().width;
+        const screenHeight = overlayWindow.getBounds().height;
+        let mouseX = 0, mouseY = 0;
+        try {
+            if (robotjs) {
+                const pos = robotjs.getMousePos();
+                mouseX = pos.x;
+                mouseY = pos.y;
+            }
+        } catch {}
+        sendOverlayData({
+            xMin: fallbackMappingSettings.xMin,
+            xMax: fallbackMappingSettings.xMax,
+            yMin: fallbackMappingSettings.yMin,
+            yMax: fallbackMappingSettings.yMax,
+            centerX: fallbackMappingSettings.centerX,
+            centerY: fallbackMappingSettings.centerY,
+            mouseX,
+            mouseY,
+            oscX: 0, // Will update on next poll
+            oscY: 0,
+            screenWidth,
+            screenHeight
+        });
+    }
+});
+
+// Unified handler for fallback mouse data (renderer or global)
+function handleFallbackMouseData(data) {
     try {
-        if (!data || typeof data !== 'object') {
-            throw new Error('Invalid data structure');
+        log.info('[LITE MODE] Fallback mouse event received:', data);
+        // Write fallback mouse event to a debug log file
+        const fs = require('fs');
+        const fallbackLogPath = path.join(app.getPath('userData'), 'fallback_mouse_debug.log');
+        fs.appendFileSync(fallbackLogPath, `[${new Date().toISOString()}] ${JSON.stringify(data)}\n`);
+        // Format the data as expected by the rest of the app
+        const formattedData = {
+            translation: {
+                x: data.translation?.x || 0,
+                y: data.translation?.y || 0,
+                z: data.translation?.z || 0
+            },
+            rotation: {
+                x: data.rotation?.x || 0,
+                y: data.rotation?.y || 0,
+                z: data.rotation?.z || 0
+            },
+            buttons: data.buttons || []
+        };
+        // Send to renderer for UI update
+        if (mainWindow && mainWindow.webContents) {
+            mainWindow.webContents.send('spacemouse-data', formattedData);
         }
-
-        // Get current sendRate from preferences
+        // Send OSC messages for fallback mouse data (LITE MODE)
         const sendRate = Number(getPreference('device_settings', 'sendRate', 33));
-
-        // Check if we should send based on rate limiting
-        if (!shouldSendOSCMessage(sendRate)) {
-            return;
-        }
-
-        // Format data with current parameters (factor, etc.)
-        const formattedData = formatDataWithParameters(data);
-
-        // Send translation data only for paths that are present (visible fields)
-        if (formattedData.translation) {
-            Object.entries(formattedData.translation).forEach(([path, value]) => {
-                if (path) { // Only send if path exists (field is visible)
-                    udpPort.send({
-                        address: path,
-                        args: [
-                            {
-                                type: 'f',
-                                value: value
+        if (shouldSendOSCMessage(sendRate)) {
+            // Format data for OSC using current paths
+            const oscData = {
+                translation: {
+                    x: data.translation?.x || 0,
+                    y: data.translation?.y || 0,
+                    z: data.translation?.z || 0
+                },
+                rotation: {
+                    x: 0, y: 0, z: 0 // fallback mouse has no rotation
+                },
+                paths: currentOSCPaths
+            };
+            try {
+                const formattedData = formatDataWithParameters(oscData);
+                // Send translation data
+                if (formattedData.translation) {
+                    log.info('[LITE MODE] OSC translation paths/values:', formattedData.translation);
+                    let sentAny = false;
+                    Object.entries(formattedData.translation).forEach(([path, value]) => {
+                        log.debug(`[DEBUG] Attempting to send OSC for path: ${path}, value: ${value}`);
+                        if (path) { // Only send if path exists (field is visible)
+                            sentAny = true;
+                            if (udpPort && udpPort.options && udpPort.options.remoteAddress) {
+                                log.info(`[DEBUG] udpPort state:`, {
+                                    remoteAddress: udpPort.options.remoteAddress,
+                                    remotePort: udpPort.options.remotePort
+                                });
+                                udpPort.send({
+                                    address: path,
+                                    args: [
+                                        {
+                                            type: 'f',
+                                            value: value
+                                        }
+                                    ]
+                                });
+                                log.info(`[LITE MODE] OSC sent: ${path} => ${value} to ${udpPort.options.remoteAddress}:${udpPort.options.remotePort}`);
+                            } else {
+                                log.error('[LITE MODE] Cannot send OSC: udpPort not initialized or missing remote address', {
+                                    udpPort: udpPort ? {
+                                        remoteAddress: udpPort.options ? udpPort.options.remoteAddress : undefined,
+                                        remotePort: udpPort.options ? udpPort.options.remotePort : undefined
+                                    } : null
+                                });
                             }
-                        ]
+                        }
                     });
+                    if (!sentAny) {
+                        log.warn('[LITE MODE] No OSC translation paths were found for fallback mouse event; check currentOSCPaths and visibility.');
+                    }
                 }
-            });
-        }
-
-        // Send rotation data only for paths that are present (visible fields)
-        if (formattedData.rotation) {
-            Object.entries(formattedData.rotation).forEach(([path, value]) => {
-                if (path) { // Only send if path exists (field is visible)
-                    udpPort.send({
-                        address: path,
-                        args: [
-                            {
-                                type: 'f',
-                                value: value
-                            }
-                        ]
-                    });
-                }
-            });
-        }
-
-        // Log data occasionally for debugging
-        if (Math.random() < 0.001) {
-            console.log('Sent OSC messages for formatted data:', {
-                formattedData,
-                sendRate
-            });
+                // No rotation for fallback mouse, but keep structure
+            } catch (err) {
+                log.error('Error formatting OSC data for fallback mouse:', err);
+            }
         }
     } catch (error) {
-        console.error('Error processing SpaceMouse data:', error);
+        log.error('Error handling fallback spacemouse data:', error);
+    }
+}
+
+// Handle fallback mouse data from renderer (legacy, for compatibility)
+ipcMain.on('spacemouse-data', (event, data) => {
+    if (data.source === 'conventional-mouse' || data.source === 'conventional-mouse-global') {
+        handleFallbackMouseData(data);
     }
 });
 
@@ -869,6 +1253,26 @@ function setupHIDDevice() {
     // Check if any devices were found
     if (spaceMiceManager.mice.length === 0) {
       log.warn('No SpaceMouse devices found');
+
+      // Prompt user for fallback approval
+      if (mainWindow && mainWindow.webContents) {
+        dialog.showMessageBox(mainWindow, {
+          type: 'question',
+          buttons: ['Yes', 'No'],
+          defaultId: 0,
+          cancelId: 1,
+          title: 'Fallback to Mouse',
+          message: 'No SpaceMouse device detected. Would you like to use your conventional mouse as a fallback input device?'
+        }).then(result => {
+          if (result.response === 0) {
+            // User approved fallback
+            mainWindow.webContents.send('enable-mouse-fallback');
+            log.info('User approved fallback to conventional mouse.');
+          } else {
+            log.info('User declined fallback to conventional mouse.');
+          }
+        });
+      }
       return false;
     }
     
