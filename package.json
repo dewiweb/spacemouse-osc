@@ -4,29 +4,35 @@
     "name": "dewiweb",
     "email": "dewiweb@gmail.com"
   },
-  "version": "2.2.2",
+  "version": "2.4.0",
   "main": "src/main.js",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^29.1.0",
-    "electron-builder": "^24.13.3",
+    "electron": "^42.0.0",
+    "electron-builder": "^26.15.3",
+    "node-abi": "^4.2.0",
     "standard-version": "^9.5.0"
   },
   "scripts": {
     "start": "electron .",
+    "postinstall": "electron-builder install-app-deps",
     "package": "electron-builder build --win --x64",
     "publish": "electron-builder  build --publish always",
     "release": "standard-version",
     "prerelease": "standard-version --prerelease"
   },
   "dependencies": {
-    "electron-context-menu": "^3.6.1",
-    "electron-log": "^4.4.8",
+    "electron-log": "^5.4.4",
     "electron-preferences": "^2.8.2",
-    "lodash": "^4.17.21",
-    "node-hid": "^3.3.0",
-    "osc": "^2.4.4",
-    "node-addon-api": "^7.1.0"
+    "lodash": "^4.18.1",
+    "node-hid": "^3.4.0",
+    "osc": "^2.4.5"
+  },
+  "resolutions": {
+    "lodash": "^4.18.1",
+    "lodash-es": "^4.18.1",
+    "serialize-javascript": "^7.0.5",
+    "ws": "^8.21.0"
   },
   "build": {
     "appId": "mouse3d-osc",

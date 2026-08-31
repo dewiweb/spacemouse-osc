@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fallback Mapping Overlay</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.01);
+      overflow: hidden;
+      pointer-events: none;
+    }
+    #canvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      position: fixed;
+      top: 0; left: 0;
+      pointer-events: none;
+      border: 4px solid red; /* DEBUG: border to check visibility */
+      box-sizing: border-box;
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #fff;
+      background: rgba(0,0,0,0.4);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 1.1em;
+      pointer-events: none;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="info">Overlay active</div>
+  <script src="overlay.js"></script>
+</body>
+</html>

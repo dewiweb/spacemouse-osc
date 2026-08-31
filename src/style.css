@@ -1,9 +1,46 @@
-/* Nord Theme Scrollbar */
+/* Nord Theme Colors */
+:root {
+  /* Dark theme (default) */
+  --background: #2E3440;
+  --secondary-background: #3B4252;
+  --border: #434C5E;
+  --text: #E5E9F0;
+  --button: #8FBCBB;
+  --button-hover: #88C0D0;
+  --accent: #5E81AC;
+  --input-bg: #282828;
+  --red: #BF616A;
+  --green: #A3BE8C;
+  --blue: #81A1C1;
+  --cyan: #88C0D0;
+}
 
+/* Light theme */
+[data-theme="light"] {
+  --background: #ECEFF4;
+  --secondary-background: #E5E9F0;
+  --border: #D8DEE9;
+  --text: #2E3440;
+  --button: #5E81AC;
+  --button-hover: #81A1C1;
+  --accent: #88C0D0;
+  --input-bg: #D8DEE9;
+  --red: #BF616A;
+  --green: #A3BE8C;
+  --blue: #81A1C1;
+  --cyan: #88C0D0;
+}
+
+/* Generic hidden class for toggling UI elements */
+.hidden {
+    display: none !important;
+}
+
+/* Nord Theme Scrollbar */
 ::-webkit-scrollbar {
   width: .875em;
   height: .875em;
-  background: #2E3440;  /* Nord background color */
+  background: var(--background);  /* Nord background color */
 }
 
 ::-webkit-scrollbar-track-piece {
@@ -11,22 +48,22 @@
   border: solid .25em transparent;
   border-right-width: .5em;
   margin: .25em;
-  box-shadow: inset .0625em .0625em 0 0 #4C566A, inset -.0625em -.0625em 0 0 #D8DEE9;  /* Nord shadow colors */
+  box-shadow: inset .0625em .0625em 0 0 var(--border), inset -.0625em -.0625em 0 0 var(--accent);  /* Nord shadow colors */
 }
 
 ::-webkit-scrollbar-thumb {
   border: solid 0 transparent;
   border-right-width: .25em;
   border-radius: .3125em;
-  box-shadow: inset 0 0 0 .0625em #5E81AC, inset 0 0 0 .375em #81A1C1;  /* Nord thumb colors */
+  box-shadow: inset 0 0 0 .0625em var(--button), inset 0 0 0 .375em var(--button-hover);  /* Nord thumb colors */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  box-shadow: inset 0 0 0 .0625em #88C0D0, inset 0 0 0 .375em #8FBCBB;  /* Nord thumb hover colors */
+  box-shadow: inset 0 0 0 .0625em var(--button-hover), inset 0 0 0 .375em var(--button);  /* Nord thumb hover colors */
 }
 
 ::-webkit-scrollbar-corner {
-  background: #E5E9F0;  /* Nord corner color */
+  background: var(--secondary-background);  /* Nord corner color */
 }
 
 
@@ -34,8 +71,8 @@
 
 @media (prefers-color-scheme: dark) {
   body,.main{
-    background-color: #2E3440;  /* Nord background color */
-    color: #E5E9F0;  /* Nord text color */
+    background-color: var(--background);  /* Nord background color */
+    color: var(--text);  /* Nord text color */
     /*font-family: Arial, Helvetica, sans-serif;*/
     font-family: 'Fira Code', monospace;
     src: local(''),
@@ -48,8 +85,6 @@
 
   }
 
-
-
   div {
     position: relative;
   }
@@ -60,28 +95,22 @@
   }
 
   .button {
-    background-color: #5E81AC;  /* Nord button color */
+    background-color: var(--button);  /* Nord button color */
     border-radius: 10px;
     border-style: none;
-    color: #E5E9F0;  /* Nord text color */
+    color: var(--text);  /* Nord text color */
     font-weight: bold;
   }
 
   .button_up {
-    background-color: #8FBCBB;  /* Nord button color */
+    background-color: var(--button);  /* Nord button color */
     border-radius: 10px;
     border-style: none;
     font-weight: bold;
   }
 
-  .infoDot {
-    font-weight: bold;
-    font-size: 500%;
-    color: #D08770;  /* Nord accent color */
-  }
-
   button {
-    background-color: #8FBCBB;  /* Nord button color */
+    background-color: var(--button);  /* Nord button color */
     border-radius: 10px;
     border-style: none;
     font-weight: bold;
@@ -89,10 +118,9 @@
 
   input,select {
     text-align: center;
-    background-color: #282828;
-    color: #E5E9F0
+    background-color: var(--input-bg);
+    color: var(--text)
   }
-
 
   input[type=text],
   input[type=number],
@@ -109,25 +137,31 @@
   }
 
   .form {
-    border: solid #4C566A;  /* Nord border color */
+    border: solid var(--border);  /* Nord border color */
     padding: 0.001px;
   }
 
-
   table {
     border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
   }
 
   table,
   th,
   td {
-    border: 1px solid #4C566A;  /* Nord border color */
+    border: 1px solid var(--border);  /* Nord border color */
   }
 
-  td{
+  td {
     vertical-align: middle;
     padding-bottom: 5px;
-    width: 16.66%;
+  }
+
+  td input,
+  td select {
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .hiddenTd {
@@ -141,7 +175,7 @@
   #add1,
   #add2,
   #add3 {
-    color: #E5E9F0;  /* Nord text color */
+    color: var(--text);  /* Nord text color */
     font-style: italic;
     font-size: smaller;
   }
@@ -154,7 +188,7 @@
 
   caption {
     font-weight: bold;
-    background-color: #2E3440;  /* Nord background color */
+    background-color: var(--background);  /* Nord background color */
   }
 }
 
@@ -170,7 +204,7 @@
 
 .toggle {
   position: absolute;
-  border: 2px solid #4C566A;  /* Nord border color */
+  border: 2px solid var(--border);  /* Nord border color */
   border-radius: 20px;
   transition: border-color 0.6s ease-out;
   box-sizing: border-box;
@@ -187,7 +221,7 @@
   width: 10px;
   bottom: 3px;
   right: 20px;
-  background-color: #4C566A;  /* Nord border color */
+  background-color: var(--border);  /* Nord border color */
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s 0.1s, width 0.1s, top 0.1s, bottom 0.1s;
@@ -199,8 +233,8 @@
   bottom: 3px;
   right: 3px;
   border-radius: 23px;
-  background-color: #8FBCBB;  /* Nord button color */
-  box-shadow: 0 0 16px #4B7A8D;  /* Nord accent color */
+  background-color: var(--button);  /* Nord button color */
+  box-shadow: 0 0 16px var(--accent);  /* Nord accent color */
   transition: all 0.2s 0.1s, right 0.1s;
 }
 
@@ -224,7 +258,7 @@
 
 /* Menu */
 #menu {
-  background-color: #2E3440;  /* Nord background color */
+  background-color: var(--background);  /* Nord background color */
   border-radius: 10px;
   display: flex;
   flex-direction: row;
@@ -252,12 +286,17 @@ input[type="range"] {
 }
 
 #logging {
-  max-height: 1px;
+  min-height: 150px;
+  max-height: 150px;
   overflow: auto;
   flex-direction: column;
-  background-color: #282828;
-  color:  #E5E9F0;
-  font-size:  10px;
+  background-color: var(--secondary-background);
+  color: var(--text);
+  font-size: 10px;
+  border: solid var(--border);
+  border-radius: 10px;
+  margin: 0 10px;
+  transition: all 0.3s ease-in-out;
 }
 
 #logging *{
@@ -275,6 +314,454 @@ input[type="range"] {
   border-radius: 1em;
   margin: 0.5em;
   line-height: 1.1em;
-  background-color: #282828;
-  color: #E5E9F0;
+  background-color: var(--input-bg);
+  color: var(--text);
+}
+
+#clearlogs button {
+  background-color: var(--button);
+  border-radius: 10px;
+  border-style: none;
+  font-weight: bold;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+#viewlogs {
+  background-color: var(--button);
+  border-radius: 10px;
+  border-style: none;
+  font-weight: bold;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+/* Pulse animation for OSC indicator */
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+#osc-indicator.pulse {
+  animation: pulse 0.2s ease-in-out;
+}
+
+.visualization-content {
+  transition: all 0.3s ease-in-out;
+}
+
+.section-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+button:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+  transition: all 0.2s ease-in-out;
+}
+
+button:focus, input:focus, select:focus {
+  outline: 2px solid var(--button-hover);
+  outline-offset: 2px;
+}
+
+input:hover, select:hover {
+  border-color: var(--button-hover);
+  transition: border-color 0.2s ease-in-out;
+}
+
+/* Apply theme colors */
+body, .main {
+  background-color: var(--background);
+  color: var(--text);
+  font-family: 'Fira Code', monospace;
+}
+
+.button {
+  background-color: var(--button);
+  color: var(--text);
+}
+
+.button_up {
+  background-color: var(--button);
+}
+
+button {
+  background-color: var(--button);
+  color: var(--text);
+}
+
+input, select {
+  background-color: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+table, th, td {
+  border: 1px solid var(--border);
+}
+
+#logging {
+  background-color: var(--secondary-background);
+  color: var(--text);
+  border: solid var(--border);
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background-color: var(--button);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.theme-toggle:hover {
+  background-color: var(--button-hover);
+}
+
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--text);
+}
+
+/* Default theme (dark) */
+:root {
+  color-scheme: dark;
+}
+
+/* Hide sun icon by default in dark mode */
+.sun {
+  display: none;
+}
+
+/* Show moon icon by default in dark mode */
+.moon {
+  display: block;
+}
+
+/* SpaceMouse Value Displays */
+.spacemouse-values {
+  background-color: var(--secondary-background);
+  border-radius: 10px;
+  padding: 15px;
+  margin: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.value-group {
+  margin-bottom: 15px;
+}
+
+.value-group h3 {
+  color: var(--text);
+  margin-bottom: 10px;
+  font-size: 1.1em;
+}
+
+.value-display {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.value-item {
+  background-color: var(--background);
+  padding: 8px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.value-label {
+  font-size: 0.9em;
+  color: var(--text);
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.value-number {
+  font-family: 'Fira Code', monospace;
+  font-size: 1.1em;
+  color: var(--cyan);
+}
+
+.button-states {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.button-indicator {
+  background-color: var(--background);
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.button-indicator.active {
+  background-color: var(--green);
+  color: var(--background);
+}
+
+/* OSC indicator pulse animation */
+.osc-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--green);
+  margin-left: 10px;
+  opacity: 0.5;
+  transition: opacity 0.1s ease-in-out;
+}
+
+.osc-indicator.pulse {
+  opacity: 1;
+}
+
+/* Cell highlighting effects */
+.cell-highlight {
+    animation: pulse 1s infinite;
+    background-color: rgba(255, 255, 0, 0.2);
+}
+
+@keyframes pulse {
+    0% {
+        background-color: rgba(255, 255, 0, 0.1);
+    }
+    50% {
+        background-color: rgba(255, 255, 0, 0.3);
+    }
+    100% {
+        background-color: rgba(255, 255, 0, 0.1);
+    }
+}
+
+/* Dark theme adjustments for highlighting */
+.theme-dark .cell-highlight {
+    background-color: rgba(255, 255, 0, 0.15);
+}
+
+.theme-dark .cell-highlight:hover {
+    background-color: rgba(255, 255, 0, 0.25);
+}
+
+/* Log styles */
+#logging {
+    overflow-y: auto;
+    padding: 10px;
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    background-color: var(--secondary-background);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    max-height: 150px;
+}
+
+.log-entry {
+    margin: 2px 0;
+    padding: 2px 5px;
+    border-radius: 3px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    border-bottom: 1px solid var(--border);
+}
+
+.log-entry:first-child {
+    border-top: 1px solid var(--border);
+    background-color: var(--background);
+    font-weight: bold;
+}
+
+.log-info {
+    color: var(--text);
+}
+
+.log-error {
+    color: var(--red);
+    font-weight: bold;
+}
+
+.log-warn {
+    color: var(--cyan);
+}
+
+.log-debug {
+    color: var(--green);
+}
+
+/* Log section header */
+.logs-section-header {
+    background-color: var(--secondary-background);
+    padding: 5px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* === Virtual Joystick (gamepad-style analog stick) === */
+.joystick-wrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    width: auto;
+}
+
+/* Outer ring — the recessed housing of the stick */
+.joystick-base {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 40%, var(--background) 60%, #1a1f2a 100%);
+    border: 2px solid #1a1f2a;
+    position: relative;
+    cursor: grab;
+    touch-action: none;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    box-shadow:
+        inset 0 4px 12px rgba(0, 0, 0, 0.6),
+        inset 0 -2px 4px rgba(255, 255, 255, 0.03),
+        0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.joystick-base:active {
+    cursor: grabbing;
+}
+
+/* Inner well — concave depression where the stick sits */
+.joystick-base::before {
+    content: '';
+    position: absolute;
+    top: 15%;
+    left: 15%;
+    right: 15%;
+    bottom: 15%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, #15191f 0%, #0d1014 100%);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+}
+
+/* Crosshair guides */
+.joystick-crosshair-h {
+    position: absolute;
+    top: 50%;
+    left: 12%;
+    right: 12%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border) 30%, var(--border) 70%, transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.joystick-crosshair-v {
+    position: absolute;
+    left: 50%;
+    top: 12%;
+    bottom: 12%;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, var(--border) 30%, var(--border) 70%, transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* The stick itself — convex cap with grip texture */
+.joystick-knob {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 35% 30%, #a0b0c0 0%, #6b7a8c 40%, #4a5666 80%, #3a4452 100%);
+    border: 1px solid #2a313c;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    box-sizing: border-box;
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.5),
+        0 1px 3px rgba(0, 0, 0, 0.4),
+        inset 0 1px 2px rgba(255, 255, 255, 0.15),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 2;
+}
+
+/* Concave top — the dip in the center of an analog stick */
+.joystick-knob::before {
+    content: '';
+    position: absolute;
+    top: 20%;
+    left: 25%;
+    right: 25%;
+    bottom: 30%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 30%, #2a313c 0%, #3a4452 70%, #4a5666 100%);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* Grip ridge — subtle highlight ring around the cap edge */
+.joystick-knob::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+}
+
+.joystick-knob.active {
+    transition: none;
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.6),
+        0 0 0 2px rgba(94, 129, 172, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.15),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.joystick-values {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9em;
+    color: var(--cyan);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.joystick-values span {
+    display: inline-block;
+    width: 90px;
+    text-align: right;
+}
+
+.joystick-values span > span {
+    width: auto;
+    display: inline;
 }
