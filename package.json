@@ -22,14 +22,12 @@
     "prerelease": "standard-version --prerelease"
   },
   "dependencies": {
-    "electron-context-menu": "^3.6.1",
-    "electron-log": "^5.0.1",
+    "electron-log": "^5.4.4",
     "electron-preferences": "^2.8.2",
-    "lodash": "^4.17.21",
+    "lodash": "^4.18.1",
     "node-hid": "^3.4.0",
-    "osc": "^2.4.4",
-    "robotjs": "^0.9.1",
-    "three": "^0.159.0"
+    "osc": "^2.4.5",
+    "robotjs": "^0.9.1"
   },
   "build": {
     "appId": "mouse3d-osc",
