@@ -8,9 +8,20 @@ const { SpaceMouse, SpaceMiceManager } = require('./lib');
 const utils = require('./utils');
 const ElectronPreferences = require('electron-preferences');
 
+// Prevent unhandled EPIPE crashes when stdout/stderr is closed (e.g. AppImage
+// launched without an attached terminal, or the terminal is closed mid-run)
+process.stdout.on('error', (err) => {
+  if (err.code !== 'EPIPE') throw err;
+});
+process.stderr.on('error', (err) => {
+  if (err.code !== 'EPIPE') throw err;
+});
+
 // Configure logging
 log.transports.file.level = 'info';
-log.transports.console.level = 'info';
+// Console transport isn't useful (and can throw EPIPE) once the app is packaged
+// and running without an attached terminal.
+log.transports.console.level = app.isPackaged ? false : 'info';
 
 // Forward logs to renderer
 function sendLogToRenderer(level, ...args) {
