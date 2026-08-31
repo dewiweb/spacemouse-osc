@@ -850,44 +850,12 @@ function handleFallbackMouseData(data) {
             };
             try {
                 const formattedData = formatDataWithParameters(oscData);
-                // Send translation data
-                if (formattedData.translation) {
-                    log.info('[LITE MODE] OSC translation paths/values:', formattedData.translation);
-                    let sentAny = false;
-                    Object.entries(formattedData.translation).forEach(([path, value]) => {
-                        log.debug(`[DEBUG] Attempting to send OSC for path: ${path}, value: ${value}`);
-                        if (path) { // Only send if path exists (field is visible)
-                            sentAny = true;
-                            if (udpPort && udpPort.options && udpPort.options.remoteAddress) {
-                                log.info(`[DEBUG] udpPort state:`, {
-                                    remoteAddress: udpPort.options.remoteAddress,
-                                    remotePort: udpPort.options.remotePort
-                                });
-                                udpPort.send({
-                                    address: path,
-                                    args: [
-                                        {
-                                            type: 'f',
-                                            value: value
-                                        }
-                                    ]
-                                });
-                                log.info(`[LITE MODE] OSC sent: ${path} => ${value} to ${udpPort.options.remoteAddress}:${udpPort.options.remotePort}`);
-                            } else {
-                                log.error('[LITE MODE] Cannot send OSC: udpPort not initialized or missing remote address', {
-                                    udpPort: udpPort ? {
-                                        remoteAddress: udpPort.options ? udpPort.options.remoteAddress : undefined,
-                                        remotePort: udpPort.options ? udpPort.options.remotePort : undefined
-                                    } : null
-                                });
-                            }
-                        }
-                    });
-                    if (!sentAny) {
-                        log.warn('[LITE MODE] No OSC translation paths were found for fallback mouse event; check currentOSCPaths and visibility.');
-                    }
+                log.info('[LITE MODE] OSC translation paths/values:', formattedData.translation);
+                // Fallback mouse has no rotation input, only send translation
+                const sentAny = sendOSCMessages({ translation: formattedData.translation }, '[LITE MODE] ');
+                if (!sentAny) {
+                    log.warn('[LITE MODE] No OSC translation paths were found for fallback mouse event; check currentOSCPaths and visibility.');
                 }
-                // No rotation for fallback mouse, but keep structure
             } catch (err) {
                 log.error('Error formatting OSC data for fallback mouse:', err);
             }
@@ -901,6 +869,25 @@ function handleFallbackMouseData(data) {
 ipcMain.on('spacemouse-data', (event, data) => {
     if (data.source === 'conventional-mouse' || data.source === 'conventional-mouse-global') {
         handleFallbackMouseData(data);
+    }
+});
+
+// Handle real SpaceMouse hardware data (translation/rotation + live OSC
+// paths computed by the renderer from the current UI fields/prefix/index).
+ipcMain.on('spacemouse-data-with-paths', (event, data) => {
+    try {
+        if (!data || !data.translation || !data.rotation || !data.paths) {
+            log.warn('Invalid spacemouse-data-with-paths payload:', data);
+            return;
+        }
+        const sendRate = Number(getPreference('device_settings', 'sendRate', 33));
+        if (!shouldSendOSCMessage(sendRate)) {
+            return;
+        }
+        const formattedData = formatDataWithParameters(data);
+        sendOSCMessages(formattedData);
+    } catch (error) {
+        log.error('Error handling spacemouse-data-with-paths:', error);
     }
 });
 
@@ -928,6 +915,35 @@ ipcMain.on('update-osc-paths', (event, paths) => {
         log.error('Error updating OSC paths:', error);
     }
 });
+
+// Send a {translation, rotation} map of path -> value as OSC messages.
+// Returns true if at least one message was sent.
+function sendOSCMessages(formattedData, logPrefix = '') {
+    if (!udpPort || !udpPort.options || !udpPort.options.remoteAddress) {
+        log.error(`${logPrefix}Cannot send OSC: udpPort not initialized or missing remote address`, {
+            udpPort: udpPort ? {
+                remoteAddress: udpPort.options ? udpPort.options.remoteAddress : undefined,
+                remotePort: udpPort.options ? udpPort.options.remotePort : undefined
+            } : null
+        });
+        return false;
+    }
+    let sentAny = false;
+    ['translation', 'rotation'].forEach((group) => {
+        const entries = formattedData[group];
+        if (!entries) return;
+        Object.entries(entries).forEach(([path, value]) => {
+            if (!path) return; // Skip if field is hidden/bypassed
+            sentAny = true;
+            udpPort.send({
+                address: path,
+                args: [{ type: 'f', value }]
+            });
+            log.info(`${logPrefix}OSC sent: ${path} => ${value} to ${udpPort.options.remoteAddress}:${udpPort.options.remotePort}`);
+        });
+    });
+    return sentAny;
+}
 
 // Format data with parameters
 function formatDataWithParameters(data) {

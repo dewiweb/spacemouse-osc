@@ -588,7 +588,23 @@ function setupEventListeners() {
                 const value = event.target.value;
                 log.info(`${id} changed:`, value);
                 handler(value);
+                // Prefix/index are part of the formatted OSC address, so refresh
+                // the paths used for OSC sending whenever they change.
+                if (id === 'prefix' || id === 'index') {
+                    updateOSCPaths();
+                }
             });
+        }
+    });
+
+    // OSC address suffix fields (e.g. "/x++"). Keep the paths used for OSC
+    // sending in sync as the user edits them; otherwise the previously
+    // applied path keeps being sent until some other action (mode/bypass
+    // change) happens to trigger a refresh.
+    ['at_tr_x', 'at_tr_y', 'at_tr_z', 'at_rt_x', 'at_rt_y', 'at_rt_z'].forEach((id) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('input', updateOSCPaths);
         }
     });
 
