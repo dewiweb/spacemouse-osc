@@ -353,12 +353,7 @@
   resolved "https://registry.npmjs.org/@types/ms/-/ms-0.7.31.tgz"
   integrity sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==
 
-"@types/node@*":
-  version "20.4.8"
-  resolved "https://registry.npmjs.org/@types/node/-/node-20.4.8.tgz"
-  integrity sha512-0mHckf6D2DiIAzh8fM8f3HQCvMKDpK94YQ0DSVkfWTG9BZleYIWudw9cJxX8oCk9bM+vAkDyujDV6dmKHbvQpg==
-
-"@types/node@^24.9.0":
+"@types/node@*", "@types/node@^24.9.0":
   version "24.13.3"
   resolved "https://registry.npmjs.org/@types/node/-/node-24.13.3.tgz#49f18bd3c647866dcda51a0756c145e14590ce16"
   integrity sha512-Dh8vAsV36ig5wa9OX4pXvMc9D3Veibfw2wix0CUwYODLD8nkj9UsLjASr49nPg+2eKzxhBV+v7L8pXvT4e639Q==
@@ -1168,9 +1163,9 @@ electron-publish@26.15.3:
     mime "^2.5.2"
 
 electron@^42.0.0:
-  version "42.11.0"
-  resolved "https://registry.npmjs.org/electron/-/electron-42.11.0.tgz#7da4fd8623f4f7826d16684142d03b6b90ea61b4"
-  integrity sha512-cVKNrRk+qedJspxeQm7HpPbALpPK8shfIBYAdqRbpw+4Gwn9+1HySne11ILs93Pmxt3z89wjso0AftadPd6Nqg==
+  version "42.11.2"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-42.11.2.tgz#ba3a9044598f50b24eae6152dabc0cdf6284453d"
+  integrity sha512-pZvqtg4PI5tEcRRieI3D/69EP6ZBF7sktIjZSdswYvC+83UCepOGn755nq/2wb+w6mxne57HcPWfm+CgnwX8Tw==
   dependencies:
     "@electron-internal/extract-zip" "^1.0.1"
     "@electron/get" "^5.0.0"
